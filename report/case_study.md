@@ -73,7 +73,6 @@ Además, para comprender la distribución de la fuerza laboral, consideraremos l
 | Arroyo Naranjo | 16 | 15.8 | 3.4 | 7.4 | 1.7 | 1.6 | 0.6 | 1.2 | 2.4 | 7.0 | 3.9 | 1.0 | 15.4 | 21.2 | 1.4 | 78.8 |
 | Cotorro | 10.5 | 13.2 | 2.2 | 5.6 | 1.5 | 4.2 | 1.5 | 1.6 | 2.5 | 6.6 | 1.2 | 1.7 | 7.4 | 5.0 | 35.2 | 64.8 |
 
-
 En este análisis se considerarán únicamente los estudiantes de niveles preuniversitario, educación técnica y profesional, formación de personal pedagógico y educación superior. Se excluyen las etapas de educación infantil, primaria y secundaria, ya que la mayoría de estos estudiantes son asignados a centros educativos cercanos a sus lugares de residencia. Cabe señalar que, en el caso del nivel preuniversitario, la mayoría de los estudiantes se ubican dentro de su mismo municipio.
 
 A continuación se presenta una tabla que muestra la cantidad de instituciones educativas por municipio para los niveles preuniversitario, técnica y profesional, formación de personal pedagógico y educación especial:
@@ -132,3 +131,60 @@ Con base en cifras nacionales disponibles, se estima que la distribución de est
 - 10,174 de la CUJAE
 
 El resto de los estudiantes de educación superior residentes en la Habana se distribuye entre universidades de diversas provincias del país.  
+
+Para estimar la demanda de transporte público en diferentes horarios del día dividiremos el proceso en dos partes.
+
+Primero nos enfocaremos en las horas pico, que suelen ser de 7:00 a.m. a 10:00 a.m. y de 5:00 p.m. a 8:00 p.m. El primer paso es estimar la cantidad de personas que se mueven para trabajar durante estos períodos. Esto se logra utilizando datos de la población económicamente activa (PEA) y la distribución de la fuerza laboral entre municipios, lo que permite calcular cuántas personas se desplazan entre municipios para llegar a sus empleos. Luego, se debe estimar el número de estudiantes que utilizan el transporte público en estos mismos horarios, considerando las cifras de instituciones educativas por municipio y la matrícula estudiantil por nivel educativo. Una vez que se tienen estos dos componentes principales, se suman para obtener la demanda total de transporte público en las horas pico.
+
+Para calcular la demanda de transporte público en horarios no pico, es necesario considerar que los patrones de viaje son menos regulares y pueden ser más diversos. En primer lugar, hay que tener en cuenta a las personas que trabajan en horarios no tradicionales, los desplazamientos relacionados con actividades recreativas, compras y otros asuntos personales, que tienden a ser más dispersos durante el día y el fin de semana. Además, los viajes para citas médicas, trámites gubernamentales y otros servicios también son factores a tener en cuenta.
+
+Para abordar la demanda de transporte público en horarios no pico, proponemos una simplificación del problema mediante la generación de planes aleatorios basados en la población desempleada y la población no activa económicamente. Aunque reconocemos que este enfoque puede no capturar con precisión los patrones reales de viaje, lo consideramos necesario porque la información específica que necesitamos no está disponible y nuestro equipo carece de la experiencia para derivarla de fuentes existentes.
+
+La principal desventaja de este enfoque es la falta de correlación con la realidad. Al usar datos generados aleatoriamente, no se tiene en cuenta la variedad de motivos que impulsan los viajes fuera de las horas pico, como actividades recreativas, turnos laborales irregulares, visitas médicas, compras, entre otros. Esto puede llevar a resultados poco precisos y a un sistema de transporte menos eficiente.
+
+Además, este método tiene un alto grado de incertidumbre, ya que no puede anticipar eventos inesperados o cambios en el comportamiento de los usuarios. Sin embargo, ante la falta de información concreta y recursos limitados, podría ser un punto de partida para obtener una estimación básica de la demanda.
+
+## Definición de la simulación
+
+### Definición del Medio
+
+- Entorno Físico:
+  - Las calles y avenidas de La Habana, incluyendo intersecciones, cruces, pasos peatonales, señales de pare y ceda el paso, semáforos y lugares de interés.
+
+- Vehículos:
+  - Guaguas: tienen un gasto variable de petróleo por kilómetro, dependiendo del estado mecánico. Pueden romperse y necesitar reparación.
+  - Gazelle: vehículos más pequeños, también sujetos a condiciones mecánicas y posibles averías.
+
+- Agentes:
+  - Conductores de guaguas y gazelle con diferentes niveles de habilidad.
+  - Pasajeros que esperan en paradas específicas o solicitan gazelle, dependiendo de sus planes y el estado del medio.
+
+#### Condiciones Iniciales
+
+- Distribución inicial de guaguas y gazelle en la ciudad.
+- Distribución de las rutas y puntos de parada.
+- Estado inicial de las guaguas y gazelle (nivel de petróleo, estado mecánico).
+- Ubicación inicial de obstáculos (accidentes, reparaciones).
+
+#### Interacciones y reglas
+
+- Accidentes y Tráfico:
+  - Los accidentes ocurren con una probabilidad variable, según la hora del día y la densidad del tráfico.
+  - Los obstáculos enlentecedores y bloqueadores afectan el tráfico y la elección de rutas.
+
+#### Recursos y Restricciones
+
+- Recursos:
+  - Cantidad de guaguas y gazelle disponibles.
+  - Cantidad de petróleo disponible para cada vehículo.
+
+- Restricciones:
+  - Limitaciones en el tiempo para completar rutas.
+  - Regulaciones de tráfico.
+
+#### Escalas y Unidades
+
+- Distancia: Kilómetros.
+- Tiempo: Minutos, horas. (ToDo: falta por definir bien la escala)
+- Consumo: Litros de petróleo por kilómetro.
+- Escala Temporal: Simulación discreta con pasos de tiempo específicos.
