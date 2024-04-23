@@ -10,8 +10,8 @@ class Graph:
 
         if idx not in self.nodes:
             self.nodes[idx] = node
+            self.count += 1
         else:
-            stored_node = self.nodes[idx]
             raise Exception("Node already exists")
 
     def add_edge(self, src, dest):

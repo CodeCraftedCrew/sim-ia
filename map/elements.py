@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from geopy import distance
 import numpy as np
-from scipy.spatial.distance import cosine
 
 
 @dataclass
@@ -131,8 +130,14 @@ class Restriction:
 @dataclass
 class Block:
     way_id: str
+    max_speed: int
+    location: Location
     name: str
     length: float
     between: (int, int)
     bus_stops: list[str]
     obstacles: list[str]  # Todo: improve creating obstacle types
+
+    def length_to(self, other):
+        return distance.distance((self.location.latitude, self.location.longitude),
+                                 (other.location.latitude, other.location.longitude)).kilometers

@@ -1,3 +1,5 @@
+import math
+
 import osmium
 from shapely import Point, Polygon
 
@@ -26,6 +28,29 @@ def read_poly_file(poly_file):
     return polygons
 
 
+def get_polygon_from_point(latitude, longitude):
+    min_lat = latitude - 0.00045
+    max_lat = latitude + 0.00045
+    min_lon = longitude - 0.00045 / math.cos(latitude)
+    max_lon = longitude + 0.00045 / math.cos(latitude)
+
+    coordinates = [
+        (min_lat, min_lon),
+        (min_lat, max_lon),
+        (max_lat, max_lon),
+        (max_lat, min_lon),
+    ]
+
+    return (latitude, longitude), Polygon(coordinates + [(min_lat, min_lon)])
+
+
+def get_polygon_from_points(points):
+    latitude = sum(lat for lat, lon in points) / len(points)
+    longitude = sum(lon for lat, lon in points) / len(points)
+
+    return get_polygon_from_point(latitude, longitude)
+
+
 class MapHandler(osmium.SimpleHandler):
     def __init__(self, municipalities_file):
         super(MapHandler, self).__init__()
@@ -33,6 +58,7 @@ class MapHandler(osmium.SimpleHandler):
         self.nodes = {}
         self.ways = {}
         self.relations = {}
+        self.fuel_stations = {}
         self.last_municipality = (
             "playa", next((polygon for name, polygon in self.municipalities_polygons if name == "playa")))
 
@@ -44,15 +70,23 @@ class MapHandler(osmium.SimpleHandler):
             tags={tag.k: Tag(tag.k, tag.v) for tag in node.tags},
             part_of=[])
 
+        if "amenity" in node.tags and node.tags["amenity"] == "fuel":
+            self.fuel_stations[("node", node.id)] = get_polygon_from_point(node.location.lat, node.location.lon)
+
     def way(self, way):
 
         new_way = Way(way.id, [], {tag.k: Tag(tag.k, tag.v) for tag in way.tags})
+        points = []
 
         for node_ref in way.nodes:
             node = self.nodes.get(node_ref.ref, None)
             if node is not None:
                 node.part_of.append(new_way)
                 new_way.nodes.append(node_ref.ref)
+                points.append((node.location.latitude, node.location.longitude))
+
+        if "amenity" in way.tags and way.tags["amenity"] == "fuel":
+            self.fuel_stations[("way", way.id)] = get_polygon_from_points(points)
 
         self.ways[way.id] = new_way
 

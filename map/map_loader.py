@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import dill
+from geopy import distance
+from shapely import Point
 
 from map.elements import Tag, Block
 from map.graph import Graph
@@ -16,6 +18,7 @@ class MapLoader:
         self.restrictions = ["route", "route_master", "restriction"]
         self.nodes = {}
         self.ways = {}
+        self.fuel_stations = {}
 
     def load_map(self, path):
 
@@ -33,14 +36,14 @@ class MapLoader:
         self.nodes = handler.nodes
         self.ways = handler.ways
 
-        graph = self.get_graph(handler.nodes, handler.ways, handler.relations)
+        graph = self.get_graph(handler.nodes, handler.ways, handler.relations, handler.fuel_stations)
 
         if path and Path(path).exists():
             dill.dump(graph, open(f'{path}/graph.pkl', 'wb'))
 
         return graph
 
-    def get_graph(self, nodes, ways, relations):
+    def get_graph(self, nodes, ways, relations, fuel_stations):
         relations_by_type = RelationHandler.filter_relations(relations, self.restrictions)
         mapped_restrictions, via_nodes_restrictions = RelationHandler.map_restrictions(
             relations_by_type.get("restriction", []))
@@ -78,15 +81,21 @@ class MapLoader:
                     obstacles.append(node_id)
 
                 if len(connected_roads) > 1:
-                    block = Block(way.id, way.tags.get("name", Tag("name", "undefined")).value, length,
+
+                    max_speed = way.tags.get("maxspeed", Tag("maxspeed", "50 km/h")).value.split()[0]
+
+                    block = Block(way.id, max_speed, last.location, way.tags.get("name", Tag("name", "undefined")).value, length,
                                   (last.id, node_id), bus_stops, obstacles)
                     graph.add_node(f"{way.id}:{last.id}:{node_id}", block)
+
+                    self.check_gas_stations(last.location.latitude, last.location.longitude,
+                                            f"{way.id}:{last.id}:{node_id}", fuel_stations)
 
                     graph.map[f"{way.id}:_:{node_id}"] = graph.map.get(f"{way.id}:_:{node_id}", []) + [last.id]
                     graph.map[f"{way.id}:{last.id}:_"] = graph.map.get(f"{way.id}:{last.id}:_", []) + [node_id]
 
                     if node.id in way_restrictions and "no_u_turn" in way_restrictions[node.id].get(way.id, []):
-                        block = Block(way.id, way.tags.get("name", Tag("name", "undefined")).value, length,
+                        block = Block(way.id, max_speed, last.location, way.tags.get("name", Tag("name", "undefined")).value, length,
                                       (node_id, last.id), bus_stops, obstacles)
                         graph.add_node(f"{way.id}:{node_id}:{last.id}", block)
 
@@ -215,3 +224,22 @@ class MapLoader:
                             graph.add_edge(key, road_key)
                     else:
                         graph.add_edge(key, road_key)
+
+    def check_gas_stations(self, latitude, longitude, key, fuel_stations):
+
+        point = Point(latitude, longitude)
+
+        for gas_station, (item_location, polygon) in fuel_stations.items():
+
+            if polygon.contains(point):
+
+                distance_value = distance.distance((latitude, longitude), item_location).kilometers
+
+                if gas_station in self.fuel_stations:
+
+                    _, length = self.fuel_stations[gas_station]
+
+                    if length < distance_value:
+                        continue
+
+                self.fuel_stations[gas_station] = (key, distance_value)
