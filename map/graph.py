@@ -5,6 +5,7 @@ class Graph:
         self.edges = {}
         self.map = {}
         self.count = 0
+        self.avg_length = 0
 
     def add_node(self, idx, node):
 

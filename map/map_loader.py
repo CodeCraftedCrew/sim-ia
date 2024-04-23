@@ -51,6 +51,8 @@ class MapLoader:
         graph = Graph()
         roads = [way for way in ways.values() if way.is_road]
 
+        sum = 0
+
         for way in roads:
 
             way_restrictions = mapped_restrictions.get(way.id, {})
@@ -86,6 +88,7 @@ class MapLoader:
 
                     block = Block(way.id, max_speed, last.location, way.tags.get("name", Tag("name", "undefined")).value, length,
                                   (last.id, node_id), bus_stops, obstacles)
+                    sum += length
                     graph.add_node(f"{way.id}:{last.id}:{node_id}", block)
 
                     self.check_gas_stations(last.location.latitude, last.location.longitude,
@@ -97,6 +100,7 @@ class MapLoader:
                     if node.id in way_restrictions and "no_u_turn" in way_restrictions[node.id].get(way.id, []):
                         block = Block(way.id, max_speed, last.location, way.tags.get("name", Tag("name", "undefined")).value, length,
                                       (node_id, last.id), bus_stops, obstacles)
+                        sum += length
                         graph.add_node(f"{way.id}:{node_id}:{last.id}", block)
 
                         graph.map[f"{way.id}:{node_id}:_"] = graph.map.get(f"{way.id}:{node_id}:_", []) + [last.id]
@@ -107,6 +111,8 @@ class MapLoader:
                     length = 0
                     bus_stops = []
                     obstacles = []
+
+        graph.avg_length = sum / graph.count
 
         for way in roads:
             way_restrictions = mapped_restrictions.get(way.id, {})
