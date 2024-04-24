@@ -68,14 +68,15 @@ class MapHandler(osmium.SimpleHandler):
             city=self.get_municipality(Point(node.location.lon, node.location.lat)),
             location=Location(node.location.lat, node.location.lon),
             tags={tag.k: Tag(tag.k, tag.v) for tag in node.tags},
-            part_of=[])
+            part_of=[],
+            bus_routes=[])
 
         if "amenity" in node.tags and node.tags["amenity"] == "fuel":
             self.fuel_stations[("node", node.id)] = get_polygon_from_point(node.location.lat, node.location.lon)
 
     def way(self, way):
 
-        new_way = Way(way.id, [], {tag.k: Tag(tag.k, tag.v) for tag in way.tags})
+        new_way = Way(way.id, [], {tag.k: Tag(tag.k, tag.v) for tag in way.tags}, [])
         points = []
 
         for node_ref in way.nodes:
@@ -91,10 +92,27 @@ class MapHandler(osmium.SimpleHandler):
         self.ways[way.id] = new_way
 
     def relation(self, relation):
-        self.relations[relation.id] = Relation(
+
+        new_relation = Relation(
             id=relation.id,
             members=[Member(member.role, member.type, member.ref) for member in relation.members],
             tags={tag.k: Tag(tag.k, tag.v) for tag in relation.tags})
+
+        self.relations[relation.id] = new_relation
+
+        if "type" in relation.tags and relation.tags["type"] == "route" and relation.tags["route"] == "bus":
+            ways = [member for member in new_relation.members if member.role == "" and member.type == "w"]
+            nodes = [member for member in new_relation.members if "stop" in member.role and member.type == "n"]
+
+            for node_member in nodes:
+                node = self.nodes.get(node_member.id, None)
+                if node:
+                    node.bus_routes.append(relation.id)
+
+            for i in range(len(ways)):
+                way = self.ways.get(ways[i].id, None)
+                if way:
+                    way.bus_routes.append((i, relation.id))
 
     def get_municipality(self, point):
 

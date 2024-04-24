@@ -4,7 +4,7 @@ import dill
 from geopy import distance
 from shapely import Point
 
-from map.elements import Tag, Block, Element
+from map.elements import Tag, Block, Element, ElementType, Route
 from map.graph import Graph
 from map.map_handler import MapHandler
 from map.relation_handler import RelationHandler
@@ -18,7 +18,9 @@ class MapLoader:
         self.restrictions = ["route", "route_master", "restriction"]
         self.nodes = {}
         self.ways = {}
+        self.relations = {}
         self.fuel_stations = {}
+        self.bus_routes = {}
 
     def load_map(self, path):
 
@@ -35,23 +37,24 @@ class MapLoader:
 
         self.nodes = handler.nodes
         self.ways = handler.ways
+        self.relations = handler.relations
 
-        graph = self.get_graph(handler.nodes, handler.ways, handler.relations, handler.fuel_stations)
+        graph = self.get_graph(handler.fuel_stations)
 
         if path and Path(path).exists():
             dill.dump(graph, open(f'{path}/graph.pkl', 'wb'))
 
         return graph
 
-    def get_graph(self, nodes, ways, relations, fuel_stations):
-        relations_by_type = RelationHandler.filter_relations(relations, self.restrictions)
+    def get_graph(self, fuel_stations):
+        relations_by_type = RelationHandler.filter_relations(self.relations, self.restrictions)
         mapped_restrictions, via_nodes_restrictions = RelationHandler.map_restrictions(
             relations_by_type.get("restriction", []))
 
         graph = Graph()
-        roads = [way for way in ways.values() if way.is_road]
+        roads = [way for way in self.ways.values() if way.is_road]
 
-        sum = 0
+        sum_value = 0
 
         for way in roads:
 
@@ -66,19 +69,19 @@ class MapLoader:
             for node_id in way.nodes:
 
                 if last is None:
-                    last = nodes[node_id]
+                    last = self.nodes[node_id]
                     previous = last
                     continue
 
-                node = nodes[node_id]
+                node = self.nodes[node_id]
                 length += previous.length_to(node)
 
                 connected_roads = [node_way for node_way in node.part_of if node_way.is_road]
 
-                node_type = node.get_type()
-
-                if node_type:
-                    elements.append(Element(node_type, [], length))
+                if node.type:
+                    elements.append(Element(node.type, [self.relations[relation_id].tags["ref"].value
+                                                        for relation_id in node.bus_routes],
+                                            length))
 
                 if len(connected_roads) > 1:
 
@@ -87,7 +90,19 @@ class MapLoader:
                     block = Block(way.id, max_speed, last.location,
                                   way.tags.get("name", Tag("name", "undefined")).value, length,
                                   (last.id, node_id), elements)
-                    sum += length
+                    sum_value += length
+
+                    for index, bus_route_id in way.bus_routes:
+
+                        bus_route = self.bus_routes.get(bus_route_id, {})
+
+                        if index in bus_route:
+                            bus_route[index] = bus_route[index] + [(len(bus_route[index]), block)]
+                        else:
+                            bus_route[index] = [(0, block)]
+
+                        self.bus_routes[bus_route_id] = bus_route
+
                     graph.add_node(f"{way.id}:{last.id}:{node_id}", block)
 
                     self.check_gas_stations(last.location.latitude, last.location.longitude,
@@ -100,7 +115,7 @@ class MapLoader:
                         block = Block(way.id, max_speed, last.location,
                                       way.tags.get("name", Tag("name", "undefined")).value, length,
                                       (node_id, last.id), elements)
-                        sum += length
+                        sum_value += length
                         graph.add_node(f"{way.id}:{node_id}:{last.id}", block)
 
                         graph.map[f"{way.id}:{node_id}:_"] = graph.map.get(f"{way.id}:{node_id}:_", []) + [last.id]
@@ -111,17 +126,19 @@ class MapLoader:
                     length = 0
                     elements = []
 
-        graph.avg_length = sum / graph.count
+        graph.avg_length = sum_value / graph.count
 
         for way in roads:
             way_restrictions = mapped_restrictions.get(way.id, {})
-            way_nodes = [nodes[node_id] for node_id in way.nodes]
+            way_nodes = [self.nodes[node_id] for node_id in way.nodes]
             self.build_connections(graph, way, way_nodes, way_restrictions)
 
             if way.is_oneway == "no":
                 self.build_connections(graph, way, list(reversed(way_nodes)), way_restrictions, True)
 
         self.apply_via_restrictions(graph, via_nodes_restrictions)
+        graph.bus_routes = self.build_bus_routes([relation for relation in relations_by_type["route_master"]
+                                                  if relation.tags["route_master"].value == "bus"])
         return graph
 
     def build_connections(self, graph, way, nodes, restrictions, reversed_order=False):
@@ -248,3 +265,33 @@ class MapLoader:
                         continue
 
                 self.fuel_stations[gas_station] = (key, distance_value)
+
+    def build_bus_routes(self, route_masters):
+
+        bus_routes = {}
+
+        for route_master in route_masters:
+
+            trips = []
+
+            for member in route_master.members:
+                if member.type == "r":
+                    relation = self.relations[member.id]
+
+                    relation_map = self.bus_routes[relation.id]
+                    relation_blocks = []
+
+                    for key, blocks in sorted(relation_map.items(), key=lambda x: x[0]):
+
+                        for _, block in sorted(blocks, key=lambda x: x[0]):
+                            relation_blocks.append(block)
+
+                    trips.append(relation_blocks)
+
+            assert len(trips) <= 2, "Bus routes are only round trip routes"
+
+            ref = route_master.tags["ref"].value
+
+            bus_routes[ref] = Route(ref, trips[0], trips[1] if len(trips) > 1 else reversed(trips[0]))
+
+        return bus_routes

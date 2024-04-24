@@ -22,6 +22,7 @@ class Way:
     id: str
     nodes: list[str]
     tags: dict[str, Tag]
+    bus_routes: list[(int, int)]
 
     @property
     def is_path(self):
@@ -89,9 +90,10 @@ class Node:
     location: Location
     tags: dict[str, Tag]
     part_of: list[Way]
+    bus_routes: list[int]
 
     @property
-    def get_type(self):
+    def type(self):
 
         if "highway" in self.tags:
 
