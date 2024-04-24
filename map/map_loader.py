@@ -4,7 +4,7 @@ import dill
 from geopy import distance
 from shapely import Point
 
-from map.elements import Tag, Block
+from map.elements import Tag, Block, Element
 from map.graph import Graph
 from map.map_handler import MapHandler
 from map.relation_handler import RelationHandler
@@ -60,8 +60,7 @@ class MapLoader:
             last = None
             previous = None
 
-            bus_stops = []
-            obstacles = []
+            elements = []
             length = 0.0
 
             for node_id in way.nodes:
@@ -76,18 +75,18 @@ class MapLoader:
 
                 connected_roads = [node_way for node_way in node.part_of if node_way.is_road]
 
-                if node.is_bus_stop:
-                    bus_stops.append(node_id)
+                node_type = node.get_type()
 
-                if node.is_delay:
-                    obstacles.append(node_id)
+                if node_type:
+                    elements.append(Element(node_type, [], length))
 
                 if len(connected_roads) > 1:
 
                     max_speed = way.tags.get("maxspeed", Tag("maxspeed", "50 km/h")).value.split()[0]
 
-                    block = Block(way.id, max_speed, last.location, way.tags.get("name", Tag("name", "undefined")).value, length,
-                                  (last.id, node_id), bus_stops, obstacles)
+                    block = Block(way.id, max_speed, last.location,
+                                  way.tags.get("name", Tag("name", "undefined")).value, length,
+                                  (last.id, node_id), elements)
                     sum += length
                     graph.add_node(f"{way.id}:{last.id}:{node_id}", block)
 
@@ -98,8 +97,9 @@ class MapLoader:
                     graph.map[f"{way.id}:{last.id}:_"] = graph.map.get(f"{way.id}:{last.id}:_", []) + [node_id]
 
                     if node.id in way_restrictions and "no_u_turn" in way_restrictions[node.id].get(way.id, []):
-                        block = Block(way.id, max_speed, last.location, way.tags.get("name", Tag("name", "undefined")).value, length,
-                                      (node_id, last.id), bus_stops, obstacles)
+                        block = Block(way.id, max_speed, last.location,
+                                      way.tags.get("name", Tag("name", "undefined")).value, length,
+                                      (node_id, last.id), elements)
                         sum += length
                         graph.add_node(f"{way.id}:{node_id}:{last.id}", block)
 
@@ -109,8 +109,7 @@ class MapLoader:
                     last = node
                     previous = node
                     length = 0
-                    bus_stops = []
-                    obstacles = []
+                    elements = []
 
         graph.avg_length = sum / graph.count
 

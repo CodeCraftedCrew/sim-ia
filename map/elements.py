@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from enum import Enum, auto
+
 from geopy import distance
 import numpy as np
 
@@ -89,16 +91,35 @@ class Node:
     part_of: list[Way]
 
     @property
-    def is_bus_stop(self):
-        return ("highway" in self.tags and self.tags["highway"].value == "bus_stop" or
-                ("bus" in self.tags and self.tags["bus"].value == "yes"
-                 and "public_transport" in self.tags and self.tags["public_transport"].value == "stop_position"))
+    def get_type(self):
 
-    @property
-    def is_delay(self):
-        return (("highway" in self.tags and
-                 self.tags["highway"].value in ["crossing", "stop", "give_way", "giveway", "traffic_signals"]) or
-                ("railway" in self.tags and self.tags["railway"].value in ["crossing", "level_crossing"]))
+        if "highway" in self.tags:
+
+            if self.tags["highway"].value == "bus_stop" or ("bus" in self.tags and self.tags["bus"].value == "yes"
+                                                            and "public_transport" in self.tags and self.tags[
+                                                                "public_transport"].value == "stop_position"):
+                return ElementType.BUS_STOP
+
+            if self.tags["highway"] == "crossing":
+                return ElementType.CROSSING
+
+            elif self.tags["highway"] == "traffic_signals":
+                return ElementType.TRAFFIC_LIGHT
+
+            elif self.tags["highway"] in ["give_way", "giveway"]:
+                return ElementType.GIVE_WAY
+
+            elif self.tags["highway"] == "stop":
+                return ElementType.STOP
+
+        if "railway" in self.tags:
+            if self.tags["railway"].value == "crossing":
+                return ElementType.CROSSING
+
+            elif self.tags["railway"] == "level_crossing":
+                return ElementType.TRAIN_RAIL
+
+        return None
 
     def length_to(self, other):
         return distance.distance((self.location.latitude, self.location.longitude),
@@ -127,6 +148,22 @@ class Restriction:
     restriction_type: str
 
 
+class ElementType(Enum):
+    BUS_STOP = auto()
+    STOP = auto()
+    TRAFFIC_LIGHT = auto()
+    GIVE_WAY = auto()
+    CROSSING = auto()
+    TRAIN_RAIL = auto()
+
+
+@dataclass
+class Element:
+    type: ElementType
+    arguments: list[str]
+    position: float
+
+
 @dataclass
 class Block:
     way_id: str
@@ -135,9 +172,15 @@ class Block:
     name: str
     length: float
     between: (int, int)
-    bus_stops: list[str]
-    obstacles: list[str]  # Todo: improve creating obstacle types
+    elements: list[Element]
 
     def length_to(self, other):
         return distance.distance((self.location.latitude, self.location.longitude),
                                  (other.location.latitude, other.location.longitude)).kilometers
+
+
+@dataclass
+class Route:
+    name: str
+    outbound_route: list[Block]
+    return_route: list[Block]
