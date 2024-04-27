@@ -1,5 +1,6 @@
 import json
 import random
+from fuzzy_system import FuzzyLogicSystem
 
 class PopulationGenerator:
 
@@ -11,6 +12,7 @@ class PopulationGenerator:
         """
         self.data = self.load_data(data_file)
         self.cumulative_ranges = self.calculate_cumulative_ranges()
+        self.fuzzy_system = FuzzyLogicSystem()
 
     def load_data(self, file_path):
         """
@@ -106,6 +108,8 @@ class PopulationGenerator:
             person['workplace_location'] = self.generate_attribute('workplace_location', person['municipality'])
 
         person['age'] = self.generate_attribute('age', person['employment_status'])
+
+        person['money'] = self.fuzzy_system.infer_money(person['age'], person['municipality'])
 
         return person
 
