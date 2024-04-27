@@ -1,111 +1,124 @@
+import json
 import random
 
-class Person:
-    def __init__(self, attributes):
-        self.attributes = attributes
+class PopulationGenerator:
 
-class DemographicGenerator:
-    def __init__(self):
-        self.demographic_distributions = {
-            'age': {'0-4': 0.043, '5-9': 0.052, '10-14': 0.049, '15-19': 0.049, '20-24':0.06, '25-29':0.062, '30-34':0.074, '35-39':0.067, '40-44':0.053, '45-49':0.069, '50-54':0.083, '55-59':0.096, '60-64':0.07, '65+':0.166},
-            'gender': {'Male': 0.47, 'Female': 0.53},
-            'location': {'Playa': 0.083, 'Plaza de la Revolución': 0.065, 'Centro Habana': 0.061, 'La Habana Vieja': 0.037, 'Regla': 0.02, 'La Habana del Este': 0.081, 'Guanabacoa': 0.06, 'San Miguel del Padrón': 0.075, 'Diez de Octubre': 0.093, 'Cerro': 0.058, 'Marianao': 0.062, 'La Lisa': 0.068, 'Boyeros': 0.095, 'Arroyo Naranjo': 0.096, 'Cotorro': 0.038},
-            'money': {
-                '0-4': {'low': 0.9, 'medium': 0.05, 'high': 0.05},
-                '5-9': {'low': 0.6, 'medium': 0.3, 'high': 0.1},
-                '10-14': {'low': 0.3, 'medium': 0.6, 'high': 0.1},
-                '15-19': {'low': 0.6, 'medium': 0.3, 'high': 0.1},
-                '20-24': {'low': 0.3, 'medium': 0.6, 'high': 0.1},
-                '25-29': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '30-34': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '35-39': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '40-44': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '45-49': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '50-54': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '55-59': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '60-64': {'low': 0.1, 'medium': 0.8, 'high': 0.1},
-                '65+': {'low': 0.4, 'medium': 0.5, 'high': 0.1},
-            },
-            #hacer travel_goal más accurated
-            'travel_goal': {'Playa': 0.1, 'Plaza de la Revolución': 0.1, 'Centro Habana': 0.1, 'La Habana Vieja': 0.1, 'Regla': 0.1, 'La Habana del Este': 0.1, 'Guanabacoa': 0.1, 'San Miguel del Padrón': 0.1, 'Diez de Octubre': 0.1, 'Cerro': 0.1, 'Marianao': 0.1, 'La Lisa': 0.1, 'Boyeros': 0.1, 'Arroyo Naranjo': 0.1, 'Cotorro': 0.1},
-            'max_waiting_time': {'low': {'low': 0.9, 'medium': 0.6, 'high': 0.3},
-                             'medium': {'low': 0.05, 'medium': 0.3, 'high': 0.6},
-                             'high': {'low': 0.05, 'medium': 0.1, 'high': 0.1}}
-        }
+    def __init__(self, data_file):
+        """
+        Initializes the PopulationGenerator instance with the data from the specified file.
+        Args:
+            data_file (str): The path of the JSON data file.
+        """
+        self.data = self.load_data(data_file)
+        self.cumulative_ranges = self.calculate_cumulative_ranges()
 
-    def alter_distribution(self, attribute, new_distribution):
+    def load_data(self, file_path):
+        """
+        Loads data from a JSON file.
+        Args:
+            file_path (str): The path of the JSON file.
+        Returns:
+            dict: The data loaded from the JSON file.
+        """
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+        return data
 
-        if attribute in self.demographic_distributions:
+    def calculate_cumulative_ranges(self):
+        """
+        Calculates the cumulative probability ranges for each attribute in the data.
+        Returns:
+            dict: A dictionary of the cumulative probability ranges.
+        """
+        cumulative_ranges = {}
         
-            if isinstance(new_distribution, dict):
-                self.demographic_distributions[attribute].update(new_distribution)
+        for attribute_name, attribute_data in self.data.items():
         
-            else:
-                raise ValueError("New distribution must be a dictionary.")
+            if isinstance(attribute_data, dict):
+                cumulative_range = {}
         
-        else:
-            raise ValueError(f"No distribution defined for attribute '{attribute}'")
-
-    def generate_demographic_data(self, attribute, current_age=None, current_money_category=None):
+                if all(isinstance(v, (int, float)) for v in attribute_data.values()):
+                    total_probability = sum(attribute_data.values())
+                    cumulative_prob = 0
         
-        distribution = self.demographic_distributions.get(attribute)
+                    for key, value in attribute_data.items():
+                        cumulative_prob += value / total_probability
+                        cumulative_range[key] = cumulative_prob
         
-        if not distribution:
-            raise ValueError(f"No distribution defined for attribute '{attribute}'")
-
-        if attribute in ['age', 'gender', 'location', 'travel_goal']:
-            return random.choices(list(distribution.keys()), weights=list(distribution.values()))[0]
-        
-        elif attribute == 'money':
-        
-            if not current_age:
-                raise ValueError("Current age must be provided for generating money category.")
-        
-            age_distribution = self.demographic_distributions['age']
-            age_category = current_age if current_age in age_distribution else random.choices(list(age_distribution.keys()), weights=list(age_distribution.values()))[0]
-            money_distribution = self.demographic_distributions['money'].get(age_category)
-        
-            if not money_distribution:
-                raise ValueError(f"No money distribution defined for age category '{age_category}'")
-        
-            return random.choices(list(money_distribution.keys()), weights=list(money_distribution.values()))[0]
-        
-        elif attribute == 'max_waiting_time':
-        
-            if not current_money_category:
-                raise ValueError("Current money category must be provided for generating waiting time.")
-        
-            max_waiting_time_distribution = self.demographic_distributions['max_waiting_time'].get(current_money_category.lower())
-        
-            if not max_waiting_time_distribution:
-                raise ValueError(f"No waiting time distribution defined for money category '{current_money_category}'")
-        
-            return random.choices(['low', 'medium', 'high'], weights=list(max_waiting_time_distribution.values()))[0]
-        
-        else:
-            raise ValueError("Attribute not supported for demographic data generation.")
-
-    def generate_person_list(self, sample_size):
-        
-        person_list = []
-        
-        for _ in range(sample_size):
-        
-            attributes = {}
-            current_age = None
-            current_money_category = None
-        
-            for attribute in self.demographic_distributions.keys():
-                if attribute == 'age':
-                    attributes[attribute] = current_age = self.generate_demographic_data(attribute)
-                elif attribute == 'money':
-                    attributes[attribute] = current_money_category = self.generate_demographic_data(attribute, current_age=current_age)
-                elif attribute == 'max_waiting_time':
-                    attributes[attribute] = self.generate_demographic_data(attribute, current_money_category=current_money_category)
                 else:
-                    attributes[attribute] = self.generate_demographic_data(attribute)
+        
+                    for key, value in attribute_data.items():
+                        sub_cumulative_range = {}
+                        total_sub_probability = sum(value.values())
+                        sub_cumulative_prob = 0
+        
+                        for sub_key, sub_value in value.items():
+                            sub_cumulative_prob += sub_value / total_sub_probability
+                            sub_cumulative_range[sub_key] = sub_cumulative_prob
+        
+                        cumulative_range[key] = sub_cumulative_range
+        
+                cumulative_ranges[attribute_name] = cumulative_range
+        
+        return cumulative_ranges
 
-            person = Person(attributes)
-            person_list.append(person)
 
-        return person_list
+    def generate_attribute(self, attribute_name, conditional_attribute=None):
+        """
+        Generates a random value for a given attribute.
+        Args:
+            attribute_name (str): The name of the attribute for which to generate the value.
+            conditional_attribute (str): The value of the conditional attribute (if any).
+        Returns:
+            str: The generated value for the attribute.
+        """
+        cumulative_range = self.cumulative_ranges[attribute_name]
+        
+        if conditional_attribute:
+        
+            conditional_range = cumulative_range[conditional_attribute]
+            rand_value = random.random()
+        
+            for key, value in conditional_range.items():        
+                if rand_value <= value:
+                    return key
+        
+        else:
+        
+            rand_value = random.random()        
+            for key, value in cumulative_range.items():
+                if rand_value <= value:
+                    return key
+
+    def generate_person(self):
+        """
+        Generates the data for a person.
+        Returns:
+            dict: A dictionary containing the generated data for a person.
+        """
+        person = {}
+
+        person['municipality'] = self.generate_attribute('municipality')
+
+        person['employment_status'] = self.generate_attribute('employment_status', person['municipality'])
+
+        if person['employment_status'] == "occupied" or person['employment_status'] == "student":
+            person['workplace_location'] = self.generate_attribute('workplace_location', person['municipality'])
+
+        person['age'] = self.generate_attribute('age', person['employment_status'])
+
+        return person
+
+    def generate_population(self, n):
+        """
+        Generates a population of people.
+        Args:
+            n (int): The size of the population to generate.
+        Returns:
+            list: A list of dictionaries, where each dictionary represents the data of a person.
+        """
+        population = []
+ 
+        for _ in range(n):
+            population.append(self.generate_person())
+        return population
