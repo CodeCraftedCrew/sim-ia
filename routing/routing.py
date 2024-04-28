@@ -142,12 +142,16 @@ def get_routes(graph, src, dest, radio):
 
     for start in possible_starts:
 
+        possible_path = []
+
         path = path_search(graph, start.id, [end.id for end in possible_ends], [], 1)
         last_ways = {"walk"}
 
         for node_id in path:
             ways_to_get_to_node = graph.nodes[node_id].ways_to_arrive()
-            possible_paths.append((node_id, last_ways.intersection(ways_to_get_to_node)))
+            possible_path.append((node_id, last_ways.intersection(ways_to_get_to_node)))
             last_ways = ways_to_get_to_node
+
+        possible_paths.append(possible_path)
 
     return possible_paths

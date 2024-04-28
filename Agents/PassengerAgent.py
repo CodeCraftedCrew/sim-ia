@@ -32,8 +32,9 @@ class PassengerAgent(Agent):
     
     """
 
-    def __init__(self, profile, plans, home_block, workplace_block, current_block):
+    def __init__(self, profile, plans, home_block, workplace_blocks, current_block):
 
+        self.waiting_time = 0
         self.profile = profile
 
         self.plans = PriorityQueue()
@@ -41,7 +42,7 @@ class PassengerAgent(Agent):
             self.plans.put(plan)
 
         self.home_block = home_block
-        self.workplace_block = workplace_block
+        self.workplace_blocks = workplace_blocks
         self.current_block = current_block
 
     @staticmethod
