@@ -108,11 +108,36 @@ class Simulation:
     def initialize_passengers(self):
         for profile in self.population:
             home_block = random.choice(self.complete_graph.nodes_by_municipality[profile["municipality"]])
-            if "workplace_location" in profile:
-                workplace = random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])
+
+            workplace, other_block = self.get_workplace_and_other_block(profile)
+
+            plans = PassengerAgent.create_plans(profile, home_block, workplace, other_block)
+
+            passenger = PassengerAgent(profile, plans, home_block, workplace, home_block)
+
+            self.passengers.append(passenger)
+
+    def get_workplace_and_other_block(self, profile):
+
+        if profile["employment_status"] == "occupied":
+            workplace = [random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
+            other_block = None
+        elif profile["employment_status"] == "student":
+            if profile["student_type"] == "bachelor":
+                if profile["bachelor_type"] == "medicine":
+                    workplace = [
+                        random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
+                else:
+                    workplace = self.schools.get(profile["bachelor_type"], None)
             else:
-                workplace = None
-            passenger = PassengerAgent(profile, None)
+                workplace = random.choice(
+                    self.schools.get((profile["workplace_location"], profile["student_type"]), []))
+            other_block = None
+        else:
+            workplace = None
+            other_block = self.complete_graph.nodes[random.choice(list(self.complete_graph.nodes.keys()))]
+
+        return workplace, other_block
 
     def prepare_simulation(self):
         """

@@ -1,76 +1,41 @@
-import random
 from enum import Enum
 from queue import PriorityQueue
 from Agents.Agent import Agent
 from routing import routing
 
-
-def time_to_minutes(time_str):
-    hours, minutes = map(int, time_str.split(":"))
-    total_minutes = (hours * 60) + minutes
-    return total_minutes
-
-
+<<<<<<< HEAD
 class PlanType(Enum):
-    GO_TO_WORK = 3
+    WORK = 3
     RETURN_HOME = 2
     RANDOM_TRAVEL = 1
 
-
 class Plan:
-    def __init__(self, time, goal, plan_type):
+    def __init__(self, goal, plan_type):
         self.goal = goal
         self.importance = plan_type.value
 
     def __lt__(self, other):
         return self.importance < other.importance
+    
+=======
 
-
+>>>>>>> 185c997 (Initialize map, schools and population)
 class PassengerAgent(Agent):
     """
     Represents a passenger agent.
     
     """
-
     def __init__(self, profile, plans, home_block, workplace_block, current_block):
 
         self.profile = profile
 
-        self.plans = PriorityQueue()
+        self.plans = PriorityQueue() 
         for plan in plans:
             self.plans.put(plan)
-
+        
         self.home_block = home_block
         self.workplace_block = workplace_block
         self.current_block = current_block
-
-    @staticmethod
-    def get_schedule(profile):
-        if profile["employment_status"] == "occupied":
-            return profile["work_schedule"]
-        elif profile["employment_status"] == "student":
-            return profile["school_schedule"]
-        else:
-            start_hour = random.randint(0, 22)
-            start = f"{start_hour}:{random.randint(0, 59)}"
-            end = f"{random.randint(start_hour + 1, 23)}:{random.randint(0, 59)}"
-            return f"{start}-{end}"
-
-    @staticmethod
-    def create_plans(profile, home_block, workplace_block, other_block):
-        schedule = PassengerAgent.get_schedule(profile)
-
-        start, end = schedule.split("-")
-
-        is_random = "employment_status" not in profile or profile["employment_status"] not in ["student", "occupied"]
-
-        plans = [
-            Plan(time_to_minutes(start), other_block if is_random else workplace_block,
-                 PlanType.RANDOM_TRAVEL if is_random else PlanType.GO_TO_WORK),
-            Plan(time_to_minutes(end), home_block, PlanType.RETURN_HOME)
-        ]
-
-        return plans
 
     def decide_action(self, environment):
         """
@@ -115,21 +80,35 @@ class PassengerAgent(Agent):
 
     def explore_nearby_nodes(self, map, radio, current_location):
 
+<<<<<<< HEAD
         blocks_of_interest = routing.blocks_in_radio(map, radio, current_location)
-
+        
         max_score = float('-inf')
         best_block = None
 
         for block in blocks_of_interest:
-            score = self.calculate_block_score(map, block, current_location)
+            score = self.calculate_block_score(map, block, current_location) 
+=======
+        nearby_nodes = map.get_nodes_by_radius(self.current_location, radius)
+
+        max_score = float('-inf')
+        best_node = None
+        for node in nearby_nodes:
+            score = self.calculate_node_score(node)
+>>>>>>> 185c997 (Initialize map, schools and population)
             if score > max_score:
                 max_score = score
                 best_block = block
 
         return best_block
 
+<<<<<<< HEAD
     def calculate_block_score(self, map, block, current_location):
+        score = 0 
+=======
+    def calculate_node_score(self, block):
         score = 0
+>>>>>>> 185c997 (Initialize map, schools and population)
 
         distance_to_passenger = current_location.length_to(block.location)
         max_score = 3
@@ -153,7 +132,7 @@ class PassengerAgent(Agent):
                 score += 2
 
         return score
-
+    
     def get_route_to_stop(self, target_stop, map):
         pass
 

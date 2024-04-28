@@ -117,12 +117,13 @@ class PopulationGenerator:
 
         if person['employment_status'] == "occupied":
             person['workplace_location'] = self.generate_attribute('workplace_location', person['municipality'])
+            person['work_schedule'] = self.generate_attribute('work_schedule')
 
         person['age'] = self.generate_attribute('age', person['employment_status'])
 
         if person['employment_status'] == "student":
-
             person['student_type'] = self.generate_attribute('student_type', person['age'])
+            person['school_schedule'] = self.generate_attribute('school_schedule', person['student_type'])
 
             if person['student_type'] == "bachelor":
                 person['bachelor_type'] = self.generate_attribute('bachelor_type')
