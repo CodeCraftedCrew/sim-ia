@@ -20,12 +20,12 @@ class MapLoader:
         self.nodes = {}
         self.ways = {}
         self.relations = {}
-        self.fuel_stations = {}
+        self.places_of_interest = {}
         self.bus_routes = {}
         self.gazelle_routes = {}
         self.replaced = set()
 
-    def load_map(self, path, gazelles_file):
+    def load_maps(self, path, gazelles_file):
 
         if path:
             saved_path = Path(f'{path}/graph.pkl')
@@ -34,7 +34,7 @@ class MapLoader:
 
                 if isinstance(cached_graph, Graph):
                     if Path(f'{path}/simplified_graph.pkl.pkl').exists():
-                        simplified_graph = dill.load(open(f'{path}/simplified_graph.pkl.pkl', 'rb'))
+                        simplified_graph = dill.load(open(f'{path}/simplified_graph.pkl', 'rb'))
 
                         if isinstance(simplified_graph, Graph):
                             return cached_graph, simplified_graph
@@ -52,7 +52,7 @@ class MapLoader:
         self.ways = handler.ways
         self.relations = handler.relations
 
-        graph = self.get_graph(handler.fuel_stations)
+        graph = self.get_graph(handler.places_of_interest)
 
         if path and Path(path).exists():
             dill.dump(graph, open(f'{path}/graph.pkl', 'wb'))
@@ -64,7 +64,7 @@ class MapLoader:
 
         return graph, simplified_graph
 
-    def get_graph(self, fuel_stations):
+    def get_graph(self, places_of_interest):
         relations_by_type = RelationHandler.filter_relations(self.relations, self.restrictions)
         mapped_restrictions, via_nodes_restrictions = RelationHandler.map_restrictions(
             relations_by_type.get("restriction", []))
@@ -98,8 +98,10 @@ class MapLoader:
 
                 connected_roads = [node_way for node_way in node.part_of if node_way.is_road]
 
+                ref = "ref"
+
                 if node.type:
-                    elements.append(Element(node.type, [f"{self.relations[relation_id].tags["ref"].value}:{relation_id}"
+                    elements.append(Element(node.type, [f"{self.relations[relation_id].tags[ref].value}:{relation_id}"
                                                         for relation_id in node.bus_routes],
                                             length))
 
@@ -107,9 +109,10 @@ class MapLoader:
 
                     max_speed = way.tags.get("maxspeed", Tag("maxspeed", "50 km/h")).value.split()[0]
 
-                    block = Block(way.id, max_speed, last.location,
+                    block = Block(way.id, max_speed, last.location, node.city,
                                   way.tags.get("name", Tag("name", "undefined")).value, length,
                                   (last.id, node_id), elements, way.is_roundabout)
+
                     sum_value += length
 
                     for index, bus_route_id in way.bus_routes:
@@ -130,17 +133,23 @@ class MapLoader:
                         elements.append(Element(ElementType.GAZELLE_ROUTE, gazelle_ids, 0))
 
                     graph.add_node(block)
+                    if node.city:
+                        graph.nodes_by_municipality[node.city] = graph.nodes_by_municipality.get(node.city, []) + [block.id]
 
-                    self.check_gas_stations(last.location.latitude, last.location.longitude,
-                                            block.id, fuel_stations)
+                    self.check_places_of_interest(last.location.latitude, last.location.longitude,
+                                            block.id, places_of_interest)
 
                     graph.map[f"{way.id}:_:{node_id}"] = graph.map.get(f"{way.id}:_:{node_id}", []) + [last.id]
                     graph.map[f"{way.id}:{last.id}:_"] = graph.map.get(f"{way.id}:{last.id}:_", []) + [node_id]
 
                     if node.id in way_restrictions and "no_u_turn" in way_restrictions[node.id].get(way.id, []):
-                        block = Block(way.id, max_speed, last.location,
+                        block = Block(way.id, max_speed, last.location, last.city,
                                       way.tags.get("name", Tag("name", "undefined")).value, length,
                                       (node_id, last.id), elements, way.is_roundabout)
+
+                        if last.city:
+                            graph.nodes_by_municipality[last.city] = graph.nodes_by_municipality.get(last.city, []) + [block.id]
+
                         sum_value += length
                         graph.add_node(block)
 
@@ -167,6 +176,7 @@ class MapLoader:
         graph.bus_routes = self.build_bus_routes(graph, [relation for relation in relations_by_type["route_master"]
                                                          if relation.tags["route_master"].value == "bus"])
         graph.gazelle_routes = self.build_gazelle_routes(graph)
+        graph.places_of_interest = self.places_of_interest
         return graph
 
     def build_connections(self, graph, way, nodes, restrictions, reversed_order=False):
@@ -255,7 +265,9 @@ class MapLoader:
 
                 from_way = self.ways[from_id]
 
-                key = f"{from_id}:{next(iter(graph.map[f"{from_id}:_:{from_way.nodes[-1]}"]))}:{from_way.nodes[-1]}"
+                idx = f"{from_id}:_:{from_way.nodes[-1]}"
+
+                key = f"{from_id}:{next(iter(graph.map[idx]))}:{from_way.nodes[-1]}"
 
                 self.replaced.update([connection for connection, walk in graph.edges[key] if not walk
                                       and connection.startswith(f"{via_id}:")])
@@ -289,24 +301,24 @@ class MapLoader:
                     else:
                         graph.add_edge(key, road_key)
 
-    def check_gas_stations(self, latitude, longitude, key, fuel_stations):
+    def check_places_of_interest(self, latitude, longitude, key, places_of_interest):
 
         point = Point(latitude, longitude)
 
-        for gas_station, (item_location, polygon) in fuel_stations.items():
+        for place_of_interest, (item_location, polygon) in places_of_interest.items():
 
             if polygon.contains(point):
 
                 distance_value = distance.distance((latitude, longitude), item_location).kilometers
 
-                if gas_station in self.fuel_stations:
+                if place_of_interest in self.places_of_interest:
 
-                    _, length = self.fuel_stations[gas_station]
+                    _, length = self.places_of_interest[place_of_interest]
 
                     if length < distance_value:
                         continue
 
-                self.fuel_stations[gas_station] = (key, distance_value)
+                self.places_of_interest[place_of_interest] = (key, distance_value)
 
     def build_bus_routes(self, graph, route_masters):
 

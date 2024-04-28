@@ -81,7 +81,7 @@ class MapHandler(osmium.SimpleHandler):
         self.nodes = {}
         self.ways = {}
         self.relations = {}
-        self.fuel_stations = {}
+        self.places_of_interest = {}
         self.last_municipality = (
             "playa", next((polygon for name, polygon in self.municipalities_polygons if name == "playa")))
 
@@ -103,8 +103,8 @@ class MapHandler(osmium.SimpleHandler):
             part_of=[],
             bus_routes=[])
 
-        if "amenity" in node.tags and node.tags["amenity"] == "fuel":
-            self.fuel_stations[("node", node.id)] = get_polygon_from_point(node.location.lat, node.location.lon)
+        if "amenity" in node.tags and node.tags["amenity"] in ["fuel", "school"]:
+            self.places_of_interest[("node", node.id, node.tags["amenity"])] = get_polygon_from_point(node.location.lat, node.location.lon)
 
     def way(self, way):
 
@@ -118,8 +118,8 @@ class MapHandler(osmium.SimpleHandler):
                 new_way.nodes.append(node_ref.ref)
                 points.append((node.location.latitude, node.location.longitude))
 
-        if "amenity" in way.tags and way.tags["amenity"] == "fuel":
-            self.fuel_stations[("way", way.id)] = get_polygon_from_points(points)
+        if "amenity" in way.tags and way.tags["amenity"] in ["fuel", "school"]:
+            self.places_of_interest[("way", way.id, way.tags["amenity"])] = get_polygon_from_points(points)
 
         if way.id in self.double_way_streets:
             new_way.tags["oneway"] = Tag("oneway", "no")

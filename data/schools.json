@@ -1,0 +1,92 @@
+{
+  "playa": {
+    "high_school": 2,
+    "technician": 5,
+    "pedagogical": 0,
+    "special": 2
+  },
+  "plaza": {
+    "high_school": 3,
+    "technician": 4,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "centro_habana": {
+    "high_school": 1,
+    "technician": 3,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "habana_vieja": {
+    "high_school": 1,
+    "technician": 2,
+    "pedagogical": 0,
+    "special": 2
+  },
+  "regla": {
+    "high_school": 1,
+    "technician": 2,
+    "pedagogical": 0,
+    "special": 2
+  },
+  "habana_del_este": {
+    "high_school": 3,
+    "technician": 4,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "guanabacoa": {
+    "high_school": 2,
+    "technician": 2,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "san_miguel_del_padron": {
+    "high_school": 2,
+    "technician": 2,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "diez_de_octubre": {
+    "high_school": 4,
+    "technician": 4,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "cerro": {
+    "high_school": 2,
+    "technician": 3,
+    "pedagogical": 1,
+    "special": 5
+  },
+  "marianao": {
+    "high_school": 2,
+    "technician": 3,
+    "pedagogical": 0,
+    "special": 5
+  },
+  "la_lisa": {
+    "high_school": 2,
+    "technician": 3,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "boyeros": {
+    "high_school": 2,
+    "technician": 6,
+    "pedagogical": 2,
+    "special": 5
+  },
+  "arroyo_naranjo": {
+    "high_school": 4,
+    "technician": 4,
+    "pedagogical": 0,
+    "special": 4
+  },
+  "cotorro": {
+    "high_school": 2,
+    "technician": 4,
+    "pedagogical": 0,
+    "special": 2
+  }
+}

@@ -48,7 +48,7 @@ class PassengerAgent(Agent):
             target_stop = self.explore_nearby_nodes(environment["city_map"], 1000, environment["current_location"])
             self.route = self.get_route_to_stop(target_stop, environment["city_map"])
             return "walk to stop"
-        
+
         elif environment["waiting"]:
             if self.decide_boarding_vehicle(environment["current_location"]):
                 self.waiting_time = 0
@@ -59,15 +59,15 @@ class PassengerAgent(Agent):
                     return "wait at stop"
                 else:
                     return "search alternative transport"
-            
+
         elif environment["walking"]:
             if environment["current_location"] == self.route[-1]:
-                return "arrive to stop" 
+                return "arrive to stop"
             elif environment["current_location"] == self.travel_goal:
                 return "arrive to destination"
             else:
                 return "walk"
-            
+
         elif environment["on_vehicle"]:
             if environment["current_location"] == self.route[-1]:
                 return "exit vehicle"
@@ -95,8 +95,8 @@ class PassengerAgent(Agent):
 
         distance_to_passenger = current_location.length_to(block.location)
         max_score = 3
-        target_distance = 500  
-        slope = 1 / target_distance  
+        target_distance = 500
+        slope = 1 / target_distance
 
         score = max(0, slope * distance_to_passenger + max_score)
 
@@ -106,14 +106,14 @@ class PassengerAgent(Agent):
 
             if route in map.gazelle_routes:
                 if self.profile.money >= 5:
-                    score += 1  
+                    score += 1
                 if route.outbound_route[0] == block:
-                    score += 1  
+                    score += 1
             else:
                 if route.outbound_route[0] == block:
-                    score += 1 
-                score += 2 
-        
+                    score += 1
+                score += 2
+
         return score
     
     def get_route_to_stop(self, target_stop, map):

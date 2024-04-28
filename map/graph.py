@@ -14,6 +14,8 @@ class Graph:
         self.count = 0
         self.avg_length = 0
         self.is_simplified = False
+        self.nodes_by_municipality = {}
+        self.places_of_interest = {}
 
     def add_node(self, node):
 

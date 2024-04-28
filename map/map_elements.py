@@ -36,6 +36,7 @@ class Block:
     way_id: str
     max_speed: int
     location: Location
+    city: str
     name: str
     length: float
     between: (int, int)
@@ -45,6 +46,14 @@ class Block:
     @property
     def id(self):
         return f"{self.way_id}:{self.between[0]}:{self.between[1]}"
+
+    def __eq__(self, other):
+        if not isinstance(other, Block):
+            return False
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
     def contains_stop(self):
         return any(element.is_stop for element in self.elements)

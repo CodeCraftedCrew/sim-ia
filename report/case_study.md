@@ -99,7 +99,7 @@ Asimismo, se muestra la matrícula de estudiantes para cada municipio y nivel ed
 
 | Municipio | Preuniversitario | Técnica y profesional | Formación Personal Pedagógico | Especial |
 |-----------|------------------|-----------------------|----------------------------------|----------|
-| Playa | 2 191 |  31 832 | - | 352 |
+| Playa | 2 191 |  4660 | - | 352 |
 | Plaza |  2 389 |  3 599 | - | 275 |
 | Centro Habana |  726 | 1 330 | - | 285 |
 | Habana Vieja |  831 | 139 | - | 178 |
