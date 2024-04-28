@@ -1,6 +1,6 @@
 import json
 import random
-from fuzzy_system import FuzzyLogicSystem
+from fuzzy_system import FuzzySystemMoney, FuzzySystemWaitingTime
 
 class PopulationGenerator:
 
@@ -12,7 +12,8 @@ class PopulationGenerator:
         """
         self.data = self.load_data(data_file)
         self.cumulative_ranges = self.calculate_cumulative_ranges()
-        self.fuzzy_system = FuzzyLogicSystem()
+        self.fuzzy_system_money = FuzzySystemMoney()
+        self.fuzzy_system_waiting_time = FuzzySystemWaitingTime()
 
     def load_data(self, file_path):
         """
@@ -109,7 +110,9 @@ class PopulationGenerator:
 
         person['age'] = self.generate_attribute('age', person['employment_status'])
 
-        person['money'] = self.fuzzy_system.infer_money(person['age'], person['municipality'])
+        person['money'] = self.fuzzy_system_money.infer_money(person['age'], person['municipality'])
+
+        person['max_waiting_time'] = self.fuzzy_system_waiting_time.infer_max_waiting_time(person['age'], person['money'], person['employment_status'])
 
         return person
 
