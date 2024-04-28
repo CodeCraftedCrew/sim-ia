@@ -1,10 +1,14 @@
+from pathlib import Path
+
 from map.map_loader import MapLoader
 
 
 def main():
-    loader = MapLoader("D:/Work/Repositories/sim-ia/map/havana.osm",
-                       "D:/Work/Repositories/sim-ia/map/municipalities.poly")
-    loader.load_map("D:/Work/Repositories/sim-ia/map")
+    src_path = Path(__file__).parent
+
+    loader = MapLoader(f"{src_path}/map/havana.osm",
+                       f"{src_path}/map/municipalities.poly")
+    loader.load_map(f"{src_path}/map", f"{src_path}/map/GAZelles.json")
 
 
 if __name__ == '__main__':
