@@ -39,12 +39,12 @@ class BusDriverAgent(Agent):
             path = self.search(start, goal, environment["city_map"])
             self.original_route = self.current_route
             self.current_route = self.reconstruct_path(path, start, goal)
-            return "go to the gas station"
+            return "drive"
         elif environment["at_gas_station"] and self.is_fuel_low(environment["fuel"]):
             return "refuel"
         elif environment["at_gas_station"] and not self.is_fuel_low(environment["fuel"]):
             self.current_route = self.original_route
-            return "back to route"
+            return "drive"
         elif environment["detour_ahead"] or environment["accident_ahead"]:
             start = self.current_location
             goal = self.current_route[-1]

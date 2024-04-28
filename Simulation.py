@@ -17,9 +17,7 @@ class Simulation:
         self.action_list = {
             "drive": self.action_drive,
             "stop_at_bus_stop": self.action_stop_at_bus_stop,
-            "go_to_the_gas_station": self.action_go_to_the_gas_station,
             "refuel": self.action_refuel,
-            "back_to_route": self.action_back_to_route,
             "take_detour": self.action_take_detour,
             "stop": self.action_stop,
             "traffic_light": self.action_traffic_light,
@@ -28,6 +26,8 @@ class Simulation:
             "train_rail": self.action_train_rail,
         }
         self.locations = []
+        self.bus_stops = {}
+        self.bus_fuel = []
         self.number_steps = 1
 
     def prepare_simulation(self):
@@ -107,10 +107,10 @@ class Simulation:
         Args:
             agentID (int): The ID of the agent performing the action.
         """
-        current_location = self.environment["current_location"]
+        current_location = self.locations[agentID] 
         current_route = self.agent[agentID].current_route
         bus_speed = self.environment["bus_speed"]
-        distance = bus_speed * self.number_steps / 3600
+        distance = (bus_speed * self.number_steps / 3600) * 1000 # Convert from km to m
 
         if current_location[1] + distance < current_location[0].length:
             current_location[1] += distance
@@ -118,6 +118,7 @@ class Simulation:
             current_location[0] = current_route[current_route.index(current_location[0]) + 1]
             current_location[1] = distance - (current_location[0].length - current_location[1])
         
+        self.bus_fuel[agentID] -= distance * 0.0002
         self.locations[agentID] = current_location
             
     def action_stop_at_bus_stop(self, agentID):
@@ -126,15 +127,16 @@ class Simulation:
         Args:
             agentID (int): The ID of the agent performing the action.
         """
-        pass
-
-    def action_go_to_the_gas_station(self, agentID):
-        """
-        Performs the 'go_to_the_gas_station' action for the given agent.
-        Args:
-            agentID (int): The ID of the agent performing the action.
-        """
-        pass
+        current_location = self.locations[agentID]
+        bus_stop_position = next((element.position for element in current_location[0].elements if element.type == "BUS_STOP"), None)
+        if bus_stop_position is None:
+            print("There is no bus stop in the block")
+            return
+        distance_to_bus_stop = current_location[1] - bus_stop_position
+        
+        if distance_to_bus_stop <= 10:
+            self.bus_stops[(current_location[0], bus_stop_position)] = True
+            self.locations[agentID] = [current_location[0], bus_stop_position]
 
     def action_refuel(self, agentID):
         """
@@ -142,15 +144,7 @@ class Simulation:
         Args:
             agentID (int): The ID of the agent performing the action.
         """
-        pass
-
-    def action_back_to_route(self, agentID):
-        """
-        Performs the 'back_to_route' action for the given agent.
-        Args:
-            agentID (int): The ID of the agent performing the action.
-        """
-        pass
+        self.bus_fuel[agentID] = 100
 
     def action_take_detour(self, agentID):
         """
