@@ -1,5 +1,4 @@
 import random
-import uuid
 from enum import Enum, auto
 
 from Agents.Agent import Agent

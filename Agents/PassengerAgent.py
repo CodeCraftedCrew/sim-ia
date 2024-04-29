@@ -13,24 +13,29 @@ def time_to_minutes(time_str):
     total_minutes = (hours * 60) + minutes
     return total_minutes
 
+
 class PlanType(Enum):
     GO_TO_WORK = 3
     RETURN_HOME = 2
     RANDOM_TRAVEL = 1
 
+
 class Plan:
     def __init__(self, time, goal, plan_type):
+        self.time = time
         self.goal = goal
         self.importance = plan_type.value
 
     def __lt__(self, other):
         return self.importance < other.importance
-    
+
+
 class PassengerState(Enum):
     INITIAL_STATE = 1
     WALKING = 2
     WAITING = 3
     AT_VEHICLE = 4
+
 
 class PassengerAgent(Agent):
     """
@@ -64,7 +69,7 @@ class PassengerAgent(Agent):
         elif profile["employment_status"] == "student":
             return profile["school_schedule"]
         else:
-            start_hour = random.randint(math.ceil(now/60), 22)
+            start_hour = random.randint(math.ceil(now / 60), 22)
             start = f"{start_hour}:{random.randint(0, 59)}"
             end = f"{random.randint(start_hour + 1, 23)}:{random.randint(0, 59)}"
             return f"{start}-{end}"
@@ -92,20 +97,13 @@ class PassengerAgent(Agent):
         if next_plan.plan_type == PlanType.GO_TO_WORK:
             routes = get_routes(graph, self.current_block, next_plan.goal, self.can_walk)
 
-            route = max(routes, key=lambda x: self.evaluate_route(x))
-            estimated_time = self.estimated_time(route)
+            route_times = [(route, self.calculate_route_time(*route)) for route in routes]
 
-            return max(now, next_plan.time - estimated_time)
+            max_route, max_time = max(route_times, key=lambda x: x[1])
+
+            return max(now, next_plan.time - max_time)
 
         return next_plan.time
-
-
-    def evaluate_route(self, route):
-        return 1
-
-    def estimated_time(self, route):
-        pass
-
 
     def decide_action(self, environment):
         """
@@ -164,22 +162,20 @@ class PassengerAgent(Agent):
                 best_route = route
 
         return best_route
-    
-    def calculate_route_time(self, map, route):
-        time = 0
 
-        time += route.total_time
+    def calculate_route_time(self, estimated_time, route):
+        time = estimated_time
 
         previous_action = None
         for action, blocks in route:
-            if previous_action and previous_action != action != "walk":
+            intersection = previous_action.intersection(action)
+            if previous_action and action != intersection and intersection != {"walk"}:
                 time += self.expected_waiting_time
             elif previous_action == "walk" and action != "walk":
                 time += self.expected_waiting_time
             previous_action = action
-        
-        return time
 
+        return time
 
     def decide_boarding_vehicle(self, current_location):
         pass
