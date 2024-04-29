@@ -1,4 +1,23 @@
+import random
+import uuid
+from enum import Enum, auto
+
 from Agents.Agent import Agent
+from events.event import Event, EventType
+from map.map_elements import ElementType
+
+
+class DriverState(Enum):
+    IDLE = auto()
+    WAITING_AT_STOP = auto()
+    DRIVING = auto()
+    DRIVING_FOR_FUEL = auto()
+    STOP_ONBOARDING = auto()
+    START_DRIVING = auto()
+    ARRIVAL_AT_STOP = auto()
+    OBEY_TRAFFIC_SIGNAL = auto()
+    REFUEL = auto()
+    DETOUR = auto()
 
 
 class BusDriverAgent(Agent):
@@ -9,125 +28,127 @@ class BusDriverAgent(Agent):
         route: The route that the bus driver follows.
     """
 
-    def __init__(self, route):
+    def __init__(self, route, wait_time):
+        self.round_trips = 0
         self.route = route
         self.current_route = route.outbound_route
+        self.wait_time = wait_time
+        self.state = DriverState.IDLE
 
-    def decide_action(self, environment):
+        self.time_ranges = {
+            ElementType.STOP: (2, 5),
+            ElementType.GIVE_WAY: (0, 3),
+            ElementType.TRAFFIC_LIGHT: (1, 3),
+            ElementType.CROSSING: (0, 7),
+            ElementType.TRAIN_RAIL: (0, 7)
+        }
+
+    def think(self, environment_info):
         """
-        Decides the action to take based on the current environment.
+        Decides the action to take based on the current environment_info.
 
         Args:
-            environment (dict): The current environment.
+            environment_info (dict): The current environment_info.
 
         Returns:
             str: The action to take.
         """
-        if self.waiting_for_passengers and not self.time_waiting == 2:
-            self.time_waiting += 1
-            return None
-        elif self.is_bus_stop_nearby(environment["current_location"], self.current_route) and not environment["at_bus_stop"]:
-            self.waiting_for_passengers = True
-            self.time_waiting = 0
-            return "stop at bus stop"
-        elif environment["at_bus_stop"] and self.time_waiting == 2:
-            self.waiting_for_passengers = False
-            return "drive"
-        elif self.is_fuel_low(environment["fuel"]) and not environment["at_gas_station"]:
-            start = self.current_location
-            goal = self.find_nearest_gas_station()
-            path = self.search(start, goal, environment["city_map"])
-            self.original_route = self.current_route
-            self.current_route = self.reconstruct_path(path, start, goal)
-            return "drive"
-        elif environment["at_gas_station"] and self.is_fuel_low(environment["fuel"]):
-            return "refuel"
-        elif environment["at_gas_station"] and not self.is_fuel_low(environment["fuel"]):
-            self.current_route = self.original_route
-            return "drive"
-        elif environment["detour_ahead"] or environment["accident_ahead"]:
-            start = self.current_location
-            goal = self.current_route[-1]
-            path = self.search(start, goal, environment["city_map"])
-            self.current_route = self.reconstruct_path(path, start, goal)
-            return "take detour"
-        elif environment["traffic_signal"] == "stop":
-            return "stop"
-        else:
-            return "drive"
-        
-    def is_bus_stop_nearby(self, current_location, current_route):
+
+        if self.state == DriverState.WAITING_AT_STOP:
+            if environment_info["onboarding"]:
+                if environment_info["bus_full"]:
+                    return DriverState.STOP_ONBOARDING
+                return DriverState.WAITING_AT_STOP
+            return DriverState.START_DRIVING
+
+        if self.state == DriverState.DRIVING and environment_info["current_location"].type == ElementType.BUS_STOP:
+            return DriverState.ARRIVAL_AT_STOP
+
+        if self.state == DriverState.IDLE and environment_info["is_fuel_low"]:
+            return DriverState.DRIVING_FOR_FUEL
+
+        if self.state == DriverState.DRIVING_FOR_FUEL and environment_info["at_gas_station"]:
+            return DriverState.REFUEL
+
+        if self.state == DriverState.DRIVING and environment_info["traffic_sign"]:
+            return DriverState.OBEY_TRAFFIC_SIGNAL
+
+        if self.state == DriverState.DRIVING or environment_info["obstacle_ahead"]:
+            return DriverState.DETOUR
+
+        return self.state
+
+    def take_action(self, state, environment_info):
+
+        if state == DriverState.STOP_ONBOARDING:
+            return [Event(environment_info["time"], EventType.STOP_ONBOARDING, self)]
+
+        if state == DriverState.WAITING_AT_STOP:
+            return [Event(environment_info["time"] + self.wait_time, EventType.BUS_STOP, self)]
+
+        if state == DriverState.START_DRIVING:
+            return self.drive(environment_info)
+
+        if state == DriverState.DRIVING_FOR_FUEL:
+            return self.refuel(environment_info)
+
+        if state == DriverState.OBEY_TRAFFIC_SIGNAL:
+            return self.obey_traffic_signal(environment_info)
+
+        if state == DriverState.DETOUR:
+            return self.take_detour(environment_info)
+
+    def drive(self, environment_info):
         """
-        Checks if there is a bus stop nearby.
-
-        Args:
-            current_location: The current location of the bus.
-            current_route: The route that the bus follows.
-
-        Returns:
-            bool: True if there is a bus stop nearby, False otherwise.
+        Performs the 'drive' action for the given agent.
         """
-        pass
 
-    def is_bus_full(self, bus_max_capacity, bus_current_capacity):
+        elements = environment_info["next_elements"]
+
+        events = []
+
+        bus_speed = environment_info["bus_speed"]
+        time = environment_info["start_time"]
+
+        last_position = 0
+
+        for element in elements:
+
+            time += (element.position - last_position) / (bus_speed / 60)
+
+            if element.type == ElementType.BUS_STOP:
+                events.append(Event(time, EventType.BUS_STOP, self))
+
+            if element.is_traffic_sign:
+                events.append(Event(time, EventType.OBEY_SIGNAL, self))
+
+            last_position = element.position
+
+        events.append(Event(time, EventType.FUEL_SPENT, self))
+        events.append(Event(time, EventType.CHANGE_POSITION, self))
+
+        return events
+
+    def refuel(self, environment_info):
         """
-        Checks if the bus is full.
-
-        Args:
-            bus_max_capacity (int): The maximum capacity of the bus.
-            bus_current_capacity (int): The current capacity of the bus.
-
-        Returns:
-            bool: True if the bus is full, False otherwise.
-        """
-        return bus_current_capacity >= bus_max_capacity
-    
-    def is_fuel_low(self, fuel):
-        """
-        Checks if the fuel level is low.
-
-        Args:
-            fuel (int): The current fuel level.
-
-        Returns:
-            bool: True if the fuel level is low, False otherwise.
-        """
-        return fuel < 10
-    
-    def find_nearest_gas_station(self):
-        """
-        Finds the nearest gas station.
-
-        Returns:
-            The location of the nearest gas station.
-        """
-        pass
-
-    def search(self, start, goal, city_map):
-        """
-        Performs a search algorithm to find a path from the start location to the goal location.
-
-        Args:
-            start: The start location.
-            goal: The goal location.
-            city_map: The map of the city.
-
-        Returns:
-            The path from the start location to the goal location.
+        Performs the 'refuel' action for the given agent.
         """
         pass
 
-    def reconstruct_path(self, path, start, goal):
+    def take_detour(self, environment_info):
         """
-        Reconstructs the path from the search algorithm.
-
-        Args:
-            path: The path from the search algorithm.
-            start: The start location.
-            goal: The goal location.
-
-        Returns:
-            The reconstructed path.
+        Performs the 'take_detour' action for the given agent.
         """
         pass
-    
+
+    def obey_traffic_signal(self, environment_info):
+        """
+        Perform the appropriate action based on the given traffic signal.
+
+        This method takes a parameter `signal_type` which indicates the type of traffic signal.
+
+        :param environment_info: The current environment perceived by the agent.
+        """
+        signal_type = environment_info["traffic_signal"]
+        time_spent = random.uniform(*self.time_ranges[signal_type])
+        return [Event(environment_info["time"] + time_spent, EventType.CONTINUE, self)]

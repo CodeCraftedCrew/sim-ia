@@ -1,8 +1,11 @@
+import heapq
+import math
 import random
 from enum import Enum
 from queue import PriorityQueue
 from Agents.Agent import Agent
 from routing import routing
+from routing.routing import get_routes
 
 
 def time_to_minutes(time_str):
@@ -40,9 +43,10 @@ class PassengerAgent(Agent):
         self.waiting_time = 0
         self.profile = profile
 
-        self.plans = PriorityQueue()
+        self.plans = []
+
         for plan in plans:
-            self.plans.put(plan)
+            heapq.heappush(self.plans, plan)
 
         self.home_block = home_block
         self.workplace_blocks = workplace_blocks
@@ -51,21 +55,23 @@ class PassengerAgent(Agent):
         self.state = PassengerState.INITIAL_STATE
         self.expected_waiting_time = 15
 
+        self.can_walk = 0.5  # distance in km
+
     @staticmethod
-    def get_schedule(profile):
+    def get_schedule(profile, now):
         if profile["employment_status"] == "occupied":
             return profile["work_schedule"]
         elif profile["employment_status"] == "student":
             return profile["school_schedule"]
         else:
-            start_hour = random.randint(0, 22)
+            start_hour = random.randint(math.ceil(now/60), 22)
             start = f"{start_hour}:{random.randint(0, 59)}"
             end = f"{random.randint(start_hour + 1, 23)}:{random.randint(0, 59)}"
             return f"{start}-{end}"
 
     @staticmethod
-    def create_plans(profile, home_block, workplace_block, other_block):
-        schedule = PassengerAgent.get_schedule(profile)
+    def create_plans(profile, home_block, workplace_block, other_block, now):
+        schedule = PassengerAgent.get_schedule(profile, now)
 
         start, end = schedule.split("-")
 
@@ -78,11 +84,28 @@ class PassengerAgent(Agent):
         ]
 
         return plans
-    
-    def update_expected_waiting_time(self, waiting_time):
-        smoothing_factor = 0.4 
-        new_expected_waiting_time = smoothing_factor * waiting_time + (1 - smoothing_factor) * self.expected_waiting_time
-        self.expected_waiting_time = round(new_expected_waiting_time)
+
+    def decide_departure_time(self, graph, now):
+
+        next_plan = self.plans[0]
+
+        if next_plan.plan_type == PlanType.GO_TO_WORK:
+            routes = get_routes(graph, self.current_block, next_plan.goal, self.can_walk)
+
+            route = max(routes, key=lambda x: self.evaluate_route(x))
+            estimated_time = self.estimated_time(route)
+
+            return max(now, next_plan.time - estimated_time)
+
+        return next_plan.time
+
+
+    def evaluate_route(self, route):
+        return 1
+
+    def estimated_time(self, route):
+        pass
+
 
     def decide_action(self, environment):
         """

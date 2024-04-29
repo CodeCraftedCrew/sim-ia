@@ -30,6 +30,11 @@ class Element:
     def is_stop(self):
         return self.type in [ElementType.BUS_STOP, ElementType.GAZELLE_ROUTE]
 
+    @property
+    def is_traffic_sign(self):
+        return self.type in [ElementType.STOP, ElementType.TRAFFIC_LIGHT, ElementType.GIVE_WAY, ElementType.CROSSING,
+                             ElementType.TRAIN_RAIL]
+
 
 @dataclass
 class Block:

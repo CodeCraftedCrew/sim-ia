@@ -6,20 +6,21 @@ from map.map_elements import Node
 
 OBSTACLE_PENALTY_FACTOR = 1
 MAX_SPEED = 50
+MAX_WALK_SPEED = 5
 MAX_DISTANCE_TOLERANCE = 10
 ITERATIONS_FACTOR = 100
 
 
-def heuristic(src_node, goal_nodes, drivers_ability):
-    base_heuristic = min(src_node.length_to(goal_node) / MAX_SPEED for goal_node in goal_nodes)
+def heuristic(src_node, goal_nodes, drivers_ability, walk):
+    base_heuristic = min(src_node.length_to(goal_node) / (MAX_SPEED if not walk else MAX_WALK_SPEED) for goal_node in goal_nodes)
     error = 0 if random.uniform(0, 1) <= drivers_ability else base_heuristic + base_heuristic * (1 - drivers_ability)
 
     return base_heuristic + error*random.choice([-1, 1])
 
 
-def cost(graph, src_id):
+def cost(graph, src_id, walk):
     block = graph.nodes[src_id]
-    estimated_time = block.length / block.max_speed
+    estimated_time = block.length / (block.max_speed if not walk else MAX_WALK_SPEED)
     penalty = len(block.obstacles) * OBSTACLE_PENALTY_FACTOR
 
     return estimated_time + penalty
@@ -34,7 +35,7 @@ def get_max_iterations(start, goals, avg_node_length):
 
 
 def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
-                drivers_ability: float = 1):
+                drivers_ability: float = 1, walk: bool = False):
     if len(goal_ids) == 0:
         return None
 
@@ -60,11 +61,11 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
             continue
 
         if current_node.id in goal_ids:
-            return reconstruct_path(came_from, current_node.id)
+            return current_node.cost, reconstruct_path(came_from, current_node.id)
 
         if multiple:
             if iterations > max_iterations:
-                return None
+                return -1, None
             iterations += 1
 
         elif (graph.nodes[current_node.id].length_to(graph.nodes[goal_nodes[0]])
@@ -72,19 +73,20 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
             continue
 
         if current_node.id in graph.edges:
-            for neighbor_id, walk in graph.edges[current_node.id]:
-                if walk:
+            for neighbor_id, walk_value in graph.edges[current_node.id]:
+                if not walk and walk_value:
                     continue
 
-                tentative_g_score = g_scores[current_node.id] + cost(graph, current_node.id)
+                tentative_g_score = g_scores[current_node.id] + cost(graph, current_node.id, walk_value)
 
                 if neighbor_id not in g_scores or tentative_g_score < g_scores[neighbor_id]:
                     came_from[neighbor_id] = current_node.id
                     g_scores[neighbor_id] = tentative_g_score
-                    f_score = tentative_g_score + heuristic(graph.nodes[neighbor_id], goal_nodes, drivers_ability)
+                    f_score = tentative_g_score + heuristic(graph.nodes[neighbor_id], goal_nodes, drivers_ability,
+                                                            walk_value)
                     heapq.heappush(open_set, Node(neighbor_id, g_score=tentative_g_score, f_score=f_score))
 
-    return None
+    return -1, None
 
 
 def reconstruct_path(came_from, current_id):
@@ -144,7 +146,7 @@ def get_routes(graph, src, dest, radio):
 
         possible_path = []
 
-        path = path_search(graph, start.id, [end.id for end in possible_ends], [], 1)
+        score, path = path_search(graph, start.id, [end.id for end in possible_ends], [], 1)
         last_ways = {"walk"}
 
         for node_id in path:
@@ -152,6 +154,6 @@ def get_routes(graph, src, dest, radio):
             possible_path.append((node_id, last_ways.intersection(ways_to_get_to_node)))
             last_ways = ways_to_get_to_node
 
-        possible_paths.append(possible_path)
+        possible_paths.append((score, possible_path))
 
     return possible_paths
