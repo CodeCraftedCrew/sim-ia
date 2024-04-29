@@ -11,6 +11,7 @@ class EventType(Enum):
     CONTINUE = auto()
     CHANGE_POSITION = auto()
     FUEL_SPENT = auto()
+    AT_STOP = auto()
 
 
 class Event:

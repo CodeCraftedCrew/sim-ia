@@ -1,9 +1,10 @@
 import heapq
 import math
 import random
-from enum import Enum
+from enum import Enum, auto
 
 from Agents.Agent import Agent
+from events.event import Event, EventType
 from routing import routing
 from routing.routing import get_routes
 
@@ -31,11 +32,15 @@ class Plan:
 
 
 class PassengerState(Enum):
-    INITIAL_STATE = 1
-    WALKING = 2
-    WAITING = 3
-    AT_VEHICLE = 4
-
+    IDLE = auto()
+    WALKING = auto()
+    WAITING = auto()
+    ON_VEHICLE = auto()
+    WALK_TO_STOP = auto()
+    BOARD_VEHICLE = auto()
+    ARRIVAL_AT_STOP = auto()
+    ARRIVAL_AT_DESTINATION = auto()
+    SEARCH_ALTERNATIVE = auto()
 
 class PassengerAgent(Agent):
     """
@@ -59,6 +64,7 @@ class PassengerAgent(Agent):
 
         self.state = PassengerState.INITIAL_STATE
         self.expected_waiting_time = 15
+        self.route = None
 
         self.can_walk = 0.5  # distance in km
 
@@ -108,48 +114,88 @@ class PassengerAgent(Agent):
 
         return next_plan.time
 
-    def decide_action(self, environment):
-        """
-        Decides the action to take based on the current environment.
+    def think(self, environment_info):
 
-        Args:
-            environment (dict): The current environment.
-
-        Returns:
-            str: The action to take.
-        """
-
-        if self.state not in [PassengerState.WAITING, PassengerState.WALKING, PassengerState.AT_VEHICLE]:
-            route = self.explore_routes(environment["city_map"], 1000, self.plans[0].goal)
-            self.state = PassengerState.WALKING
-            return "walk to stop"
-
-        elif self.state == PassengerState.WAITING:
-            if self.decide_boarding_vehicle(self.current_block):
-                self.update_expected_waiting_time(self.waiting_time)
-                self.waiting_time = 0
-                return "board vehicle"
+        if self.state == PassengerState.IDLE:
+            return PassengerState.WALK_TO_STOP
+        
+        if self.state == PassengerState.WAITING:
+            if self.decide_boarding_vehicle(self.current_block, environment_info):
+                return PassengerState.BOARD_VEHICLE
             else:
                 if self.waiting_time < self.profile["max_waiting_time"]:
-                    self.waiting_time += 1
-                    return "wait at stop"
+                    return PassengerState.WAITING
                 else:
-                    return "search alternative transport"
+                    return PassengerState.SEARCH_ALTERNATIVE
 
-        elif self.state == PassengerState.WALKING:
-            if environment["current_location"] == self.route[-1]:
-                return "arrive to stop"
+        if self.state == PassengerState.WALKING or self.state == PassengerState.ON_VEHICLE:
+            if self.current_block == self.route[-1]:
+                return PassengerState.ARRIVAL_AT_STOP
+            
+            if self.current_block == self.plans[0].goal:
+                return PassengerState.ARRIVAL_AT_DESTINATION
+               
+        return self.state
+    
+    def take_action(self, state, environment_info):
 
-            elif environment["current_location"] == self.travel_goal:
-                return "arrive to destination"
-            else:
-                return "walk"
+        if state == PassengerState.WALK_TO_STOP:
+            return self.walk_to_stop(environment_info)
+        
+        if state == PassengerState.BOARD_VEHICLE:
+            return self.board_vehicle(environment_info)
+        
+        if state == PassengerState.SEARCH_ALTERNATIVE:
+            return self.search_alternative(environment_info)
+        
+        if state == PassengerState.WAITING:
+            return [Event(environment_info["time"], EventType.AT_STOP, self)]
+        
+        if state == PassengerState.WALKING:
+            return self.walk(environment_info)
+            
+    # def decide_action(self, environment):
+    #     """
+    #     Decides the action to take based on the current environment.
 
-        elif environment["on_vehicle"]:
-            if environment["current_location"] == self.route[-1]:
-                return "exit vehicle"
-            else:
-                return "continue journey"
+    #     Args:
+    #         environment (dict): The current environment.
+
+    #     Returns:
+    #         str: The action to take.
+    #     """
+
+    #     if self.state not in [PassengerState.WAITING, PassengerState.WALKING, PassengerState.ON_VEHICLE]:
+    #         self.route = self.explore_routes(environment["city_map"], 1000, self.plans[0].goal)
+    #         self.state = PassengerState.WALKING
+    #         return "walk to stop"
+
+    #     elif self.state == PassengerState.WAITING:
+    #         if self.decide_boarding_vehicle(self.current_block):
+    #             self.update_expected_waiting_time(self.waiting_time)
+    #             self.waiting_time = 0
+    #             return "board vehicle"
+    #         else:
+    #             if self.waiting_time < self.profile["max_waiting_time"]:
+    #                 self.waiting_time += 1
+    #                 return "wait at stop"
+    #             else:
+    #                 return "search alternative transport"
+
+    #     elif self.state == PassengerState.WALKING:
+    #         if self.current_block == self.route[-1]:
+    #             return "arrive to stop"
+
+    #         elif self.current_block == self.plans[0].goal:
+    #             return "arrive to destination"
+    #         else:
+    #             return "walk"
+
+    #     elif self.state == PassengerState.ON_VEHICLE:
+    #         if self.current_block == self.route[-1]:
+    #             return "exit vehicle"
+    #         else:
+    #             return "continue journey"
 
     def explore_routes(self, graph, radio, goal):
 
