@@ -111,11 +111,13 @@ class Node:
     @property
     def type(self):
 
+        if ("bus" in self.tags and self.tags["bus"].value == "yes" and "public_transport" in self.tags and self.tags[
+                                                                "public_transport"].value == "stop_position"):
+            return ElementType.BUS_STOP
+
         if "highway" in self.tags:
 
-            if self.tags["highway"].value == "bus_stop" or ("bus" in self.tags and self.tags["bus"].value == "yes"
-                                                            and "public_transport" in self.tags and self.tags[
-                                                                "public_transport"].value == "stop_position"):
+            if self.tags["highway"].value == "bus_stop":
                 return ElementType.BUS_STOP
 
             if self.tags["highway"] == "crossing":

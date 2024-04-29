@@ -2,13 +2,13 @@ import heapq
 import random
 
 from map.graph import Graph
-from map.map_elements import Node
+from map.map_elements import Node, Block
 
 OBSTACLE_PENALTY_FACTOR = 1
 MAX_SPEED = 50
 MAX_WALK_SPEED = 5
 MAX_DISTANCE_TOLERANCE = 10
-ITERATIONS_FACTOR = 100
+ITERATIONS_FACTOR = 1000
 
 
 def heuristic(src_node, goal_nodes, drivers_ability, walk):
@@ -20,8 +20,8 @@ def heuristic(src_node, goal_nodes, drivers_ability, walk):
 
 def cost(graph, src_id, walk):
     block = graph.nodes[src_id]
-    estimated_time = block.length / (block.max_speed if not walk else MAX_WALK_SPEED)
-    penalty = len(block.obstacles) * OBSTACLE_PENALTY_FACTOR
+    estimated_time = block.length / (int(block.max_speed) if not walk else MAX_WALK_SPEED)
+    penalty = len([element for element in block.elements if element.is_traffic_sign]) * OBSTACLE_PENALTY_FACTOR
 
     return estimated_time + penalty
 
@@ -44,7 +44,7 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
     start_node = graph.nodes[start_id]
 
     heapq.heappush(open_set, Node(start_id, g_score=0,
-                                  f_score=heuristic(graph.nodes[start_id], goal_nodes, drivers_ability), ))
+                                  f_score=heuristic(graph.nodes[start_id], goal_nodes, drivers_ability, walk), ))
 
     g_scores = {start_id: 0}
 
@@ -61,7 +61,7 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
             continue
 
         if current_node.id in goal_ids:
-            return current_node.cost, reconstruct_path(came_from, current_node.id)
+            return current_node.g_score, reconstruct_path(came_from, current_node.id)
 
         if multiple:
             if iterations > max_iterations:
@@ -105,7 +105,7 @@ def blocks_in_radio(graph, start_block, radio, walk):
 
     heapq.heappush(open_set, Node(start_block.id, g_score=0, f_score=0))
 
-    blocks_of_interest = {start_block} if any(element.is_stop for element in start_block.elements) else set()
+    blocks_of_interest = {start_block} if start_block.contains_stop() else set()
 
     while open_set:
         current_node = heapq.heappop(open_set)
@@ -117,7 +117,8 @@ def blocks_in_radio(graph, start_block, radio, walk):
                     continue
 
                 neighbor = graph.nodes[neighbor_id]
-                tentative_length = length_to_start[current_node.id] + current_node.lenght_to(neighbor)
+                current_block = graph.nodes[current_node.id]
+                tentative_length = length_to_start[current_node.id] + current_block.length_to(neighbor)
 
                 if tentative_length > radio:
                     continue
@@ -138,7 +139,16 @@ def get_routes(graph, src, dest, radio):
         raise ValueError("Graph is not simplified")
 
     possible_starts = blocks_in_radio(graph, src, radio, True)
-    possible_ends = blocks_in_radio(graph, dest, radio, True)
+    possible_ends = set()
+
+    if isinstance(dest, list):
+        for block in dest:
+            possible_ends.update(blocks_in_radio(graph, block, radio, False))
+    else:
+        possible_ends = blocks_in_radio(graph, dest, radio, True)
+
+    if len(possible_starts) == 0 or len(possible_ends) == 0:
+        return []
 
     possible_paths = []
 
@@ -147,12 +157,18 @@ def get_routes(graph, src, dest, radio):
         possible_path = []
 
         score, path = path_search(graph, start.id, [end.id for end in possible_ends], [], 1)
+
+        if score == -1:
+            continue
+
         last_ways = {"walk"}
+        last_node = None
 
         for node_id in path:
-            ways_to_get_to_node = graph.nodes[node_id].ways_to_arrive()
+            ways_to_get_to_node = graph.nodes[node_id].ways_to_arrive(last_node)
             possible_path.append((node_id, last_ways.intersection(ways_to_get_to_node)))
             last_ways = ways_to_get_to_node
+            last_node = node_id
 
         possible_paths.append((score, possible_path))
 

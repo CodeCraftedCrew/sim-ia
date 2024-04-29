@@ -63,9 +63,13 @@ class Block:
     def contains_stop(self):
         return any(element.is_stop for element in self.elements)
 
-    def ways_to_arrive(self, from_id):
-        _, from_road_a, _ = from_id.split(":")
-        is_reversed = int(from_road_a) == self.between[0]
+    def ways_to_arrive(self, from_id=None):
+        if from_id is None:
+            is_reversed = False
+        else:
+            _, from_road_a, _ = from_id.split(":")
+            is_reversed = int(from_road_a) == self.between[0]
+
         ways = {"walk"}
 
         ways.update(
@@ -73,8 +77,8 @@ class Block:
             for element in self.elements
             if element.is_stop
             for argument in element.arguments
-            if (int(argument.split(":")[0]) == -1 and is_reversed)
-            or (int(argument.split(":")[0]) == 1 and not is_reversed)
+            if (int(argument.split(":")[1]) == -1 and is_reversed)
+            or (int(argument.split(":")[1]) == 1 and not is_reversed)
         )
 
         return ways

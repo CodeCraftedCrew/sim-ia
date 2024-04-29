@@ -79,7 +79,8 @@ class Graph:
 
             current_node = heapq.heappop(open_set)
             if current_node.id not in simplified_graph.nodes:
-                simplified_graph.add_node(current_node)
+                current_block = self.nodes[current_node.id]
+                simplified_graph.add_node(current_block)
                 sum_length += current_node.g_score
 
             if current_node.id in self.edges:

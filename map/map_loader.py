@@ -33,7 +33,7 @@ class MapLoader:
                 cached_graph = dill.load(open(saved_path, 'rb'))
 
                 if isinstance(cached_graph, Graph):
-                    if Path(f'{path}/simplified_graph.pkl.pkl').exists():
+                    if Path(f'{path}/simplified_graph.pkl').exists():
                         simplified_graph = dill.load(open(f'{path}/simplified_graph.pkl', 'rb'))
 
                         if isinstance(simplified_graph, Graph):

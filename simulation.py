@@ -12,6 +12,7 @@ from population.generator import PopulationGenerator
 from map.map_loader import MapLoader
 
 TIME_BETWEEN_DEPARTURES = 30
+WAIT_TIME = 5
 
 
 class Simulation:
@@ -29,7 +30,7 @@ class Simulation:
         """
 
         self.events = []
-        self.time = start_time
+        self.time = 0
 
         self.routes_graph = None
         self.complete_graph = None
@@ -101,7 +102,7 @@ class Simulation:
 
     def initialize_passengers(self):
         for profile in self.population:
-            home_block = random.choice(self.complete_graph.nodes_by_municipality[profile["municipality"]])
+            home_block = self.complete_graph.nodes[random.choice(self.complete_graph.nodes_by_municipality[profile["municipality"]])]
 
             workplace, other_block = self.get_workplace_and_other_block(profile)
 
@@ -109,16 +110,21 @@ class Simulation:
 
             passenger = PassengerAgent(profile, plans, home_block, workplace, home_block)
 
+            time = passenger.decide_departure_time(self.routes_graph, self.time)
+
+            if time == -1:
+                continue
+
             self.passengers.append(passenger)
 
-            heapq.heappush(self.events, Event(time=passenger.decide_departure_time(self.routes_graph, self.time),
+            heapq.heappush(self.events, Event(time=time,
                                               event_type=EventType.DEPARTURE,
                                               agent=passenger))
 
     def get_workplace_and_other_block(self, profile):
 
         if profile["employment_status"] == "occupied":
-            workplace = [random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
+            workplace = self.complete_graph.nodes[random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
             other_block = None
         elif profile["employment_status"] == "student":
             if profile["student_type"] == "bachelor":
@@ -142,7 +148,7 @@ class Simulation:
         for route, quantity in bus_distributions.items():
 
             for i in range(quantity):
-                driver = BusDriverAgent(route)
+                driver = BusDriverAgent(route, WAIT_TIME)
                 self.drivers.append(driver)
                 heapq.heappush(self.events, Event(time=start_time + i * TIME_BETWEEN_DEPARTURES,
                                                   event_type=EventType.DEPARTURE,

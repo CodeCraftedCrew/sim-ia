@@ -20,4 +20,4 @@ class Event:
         self.agent = agent
 
     def __lt__(self, other):
-        return self.time < other.time or self.event_type <= other.event_type
+        return self.time < other.time or self.event_type.value <= other.event_type.value

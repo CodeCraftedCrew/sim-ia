@@ -2,7 +2,7 @@ import heapq
 import math
 import random
 from enum import Enum
-from queue import PriorityQueue
+
 from Agents.Agent import Agent
 from routing import routing
 from routing.routing import get_routes
@@ -24,10 +24,10 @@ class Plan:
     def __init__(self, time, goal, plan_type):
         self.time = time
         self.goal = goal
-        self.importance = plan_type.value
+        self.plan_type = plan_type
 
     def __lt__(self, other):
-        return self.importance < other.importance
+        return self.plan_type.value > other.plan_type.value
 
 
 class PassengerState(Enum):
@@ -97,11 +97,14 @@ class PassengerAgent(Agent):
         if next_plan.plan_type == PlanType.GO_TO_WORK:
             routes = get_routes(graph, self.current_block, next_plan.goal, self.can_walk)
 
+            if len(routes) == 0:
+                return -1
+
             route_times = [(route, self.calculate_route_time(*route)) for route in routes]
 
-            max_route, max_time = max(route_times, key=lambda x: x[1])
+            min_route, min_time = min(route_times, key=lambda x: x[1])
 
-            return max(now, next_plan.time - max_time)
+            return max(now, next_plan.time - min_time)
 
         return next_plan.time
 
@@ -148,9 +151,12 @@ class PassengerAgent(Agent):
             else:
                 return "continue journey"
 
-    def explore_routes(self, map, radio, goal):
+    def explore_routes(self, graph, radio, goal):
 
-        possible_routes = routing.get_routes(map, self.current_block, goal, radio)
+        possible_routes = routing.get_routes(graph, self.current_block, goal, radio)
+
+        if len(possible_routes) == 0:
+            return []
 
         max_score = float('-inf')
         best_route = None
@@ -166,8 +172,8 @@ class PassengerAgent(Agent):
     def calculate_route_time(self, estimated_time, route):
         time = estimated_time
 
-        previous_action = None
-        for action, blocks in route:
+        previous_action = {"walk"}
+        for blocks, action in route:
             intersection = previous_action.intersection(action)
             if previous_action and action != intersection and intersection != {"walk"}:
                 time += self.expected_waiting_time
