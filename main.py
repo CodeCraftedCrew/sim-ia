@@ -8,6 +8,8 @@ def main():
     simulation = Simulation(f"{src_path}/map", f"{src_path}/population", 18272,
                             f"{src_path}/data", {}, 600)
 
+    simulation.run()
+
 
 if __name__ == '__main__':
     main()

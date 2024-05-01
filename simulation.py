@@ -5,8 +5,8 @@ from pathlib import Path
 
 import dill
 
-from Agents.BusDriverAgent import BusDriverAgent
-from Agents.PassengerAgent import PassengerAgent
+from agents.bus_driver_agent import BusDriverAgent
+from agents.passenger_agent import PassengerAgent, PassengerStatus
 from events.event import Event, EventType
 from population.generator import PopulationGenerator
 from map.map_loader import MapLoader
@@ -31,6 +31,9 @@ class Simulation:
 
         self.events = []
         self.time = 0
+        self.passengers_waiting = {}
+        self.passengers_on_vehicle = {}
+        self.environments = {}
 
         self.routes_graph = None
         self.complete_graph = None
@@ -47,8 +50,6 @@ class Simulation:
 
         self.drivers = []
         self.initialize_drivers(bus_distributions, start_time)
-
-        self.run()
 
     def initialize_maps(self, maps_path):
 
@@ -102,7 +103,8 @@ class Simulation:
 
     def initialize_passengers(self):
         for profile in self.population:
-            home_block = self.complete_graph.nodes[random.choice(self.complete_graph.nodes_by_municipality[profile["municipality"]])]
+            home_block = self.complete_graph.nodes[
+                random.choice(self.complete_graph.nodes_by_municipality[profile["municipality"]])]
 
             workplace, other_block = self.get_workplace_and_other_block(profile)
 
@@ -124,7 +126,8 @@ class Simulation:
     def get_workplace_and_other_block(self, profile):
 
         if profile["employment_status"] == "occupied":
-            workplace = self.complete_graph.nodes[random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
+            workplace = self.complete_graph.nodes[
+                random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
             other_block = None
         elif profile["employment_status"] == "student":
             if profile["student_type"] == "bachelor":
@@ -158,10 +161,47 @@ class Simulation:
 
         while self.events:
             current_event = heapq.heappop(self.events)
+            self.time = current_event.time
             agent = current_event.agent
 
-            action = agent.think(current_event, self.get_environment_info(agent))
-            events = agent.take_action(action)
+            env = self.get_environment_info(agent)
+            env.time = current_event.time
+
+            if current_event.type == EventType.FUEL_SPENT:
+                env.current_bus.fuel -= env.current_bus.consumption_rate * agent.current_route[env.current_position]
+
+            if current_event.type == EventType.BUS_STOP and not env.onboarding:
+
+                passengers_on_vehicle = self.passengers_on_vehicle.get(agent.id, [])
+
+                last_leave_time = env.time
+
+                for passenger in passengers_on_vehicle:
+                    passenger_env = self.get_environment_info(passenger)
+                    action = passenger.think(current_event, passenger_env)
+                    event = passenger.take_action(action, passenger_env)
+                    heapq.heappush(self.events, event)
+
+                    if event.event_type == EventType.GET_OFF_VEHICLE:
+                        last_leave_time = event.time
+
+                env.onboarding = True
+                current_block_id = agent.current_route[env.current_position].id
+                space = env.current_bus.space()
+                waiting_index = 0
+                waiting_passengers = self.passengers_waiting.get(current_block_id, [])
+
+                for passenger in waiting_passengers:
+                    passenger_env = self.get_environment_info(passenger)
+                    action = passenger.think(current_event, passenger_env)
+                    event = passenger.take_action(action, passenger_env)
+
+                    if event.event_type == EventType.BOARD_VEHICLE:
+                        heapq.heappush(self.events, event)
+                        break
+
+            action = agent.think(current_event, env)
+            events = agent.take_action(action, env)
 
             for event in events:
                 heapq.heappush(self.events, event)
@@ -179,27 +219,15 @@ class Simulation:
         """
         Retrieves the environment information for the bus driver agent.
         Returns:
-            dict: A dictionary containing the environment information.
+            DriverEnvironment
         """
-        # environment = {
-        #     "bus_max_capacity": None,
-        #     "bus_current_capacity": None,
-        #     "at_bus_stop": None,
-        #     "at_gas_station": None,
-        #     "detour_ahead": None,
-        #     "accident_ahead": None,
-        #     "fuel": None,
-        #     "current_location": [route[i], numero entre 0 y route[i].length)],
-        #     "traffic_signal": None,
-        #     "city_map": None
-        #     "bus_speed": None
-        # }
-        pass
+
+        return self.environments[f"driver:{agent.id}"]
 
     def get_passenger_environment_info(self, agent: PassengerAgent):
         """
             Retrieves the environment information for the passenger agent.
             Returns:
-                dict: A dictionary containing the environment information.
+                PassengerEnvironment: A dictionary containing the environment information.
         """
-        pass
+        return self.environments[f"passenger:{agent.id}"]

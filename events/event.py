@@ -2,9 +2,10 @@ from enum import Enum, auto
 
 
 class EventType(Enum):
-    OBEY_SIGNAL = auto()
+
+    GET_OFF_VEHICLE = auto()
+    BOARD_VEHICLE = auto()
     BUS_STOP = auto()
-    STOP_ONBOARDING = auto()
     DEPARTURE = auto()
     DETOUR = auto()
     ARRIVAL = auto()
@@ -12,7 +13,8 @@ class EventType(Enum):
     CHANGE_POSITION = auto()
     FUEL_SPENT = auto()
     AT_STOP = auto()
-
+    ROUTE_ENDED = auto()
+    ROUTE_ENDED_ABRUPTLY = auto()
 
 class Event:
     def __init__(self, time, event_type, agent):
