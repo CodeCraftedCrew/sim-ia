@@ -30,7 +30,7 @@ class DriverEnvironment:
     last_element_index: int
 
     map: Graph
-    gas_stations: list[Block]
+    gas_stations: list[str]
 
     onboarding: bool
     obstacle_ahead: bool

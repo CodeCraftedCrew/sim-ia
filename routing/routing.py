@@ -68,7 +68,7 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
                 return -1, None
             iterations += 1
 
-        elif (graph.nodes[current_node.id].length_to(graph.nodes[goal_nodes[0]])
+        elif (graph.nodes[current_node.id].length_to(goal_nodes[0])
               > distance_from_start + MAX_DISTANCE_TOLERANCE):
             continue
 

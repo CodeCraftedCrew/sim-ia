@@ -7,6 +7,7 @@ import dill
 
 from agents.bus_driver_agent import BusDriverAgent
 from agents.passenger_agent import PassengerAgent, PassengerStatus
+from environment.environment import DriverEnvironment, Bus, PassengerEnvironment
 from events.event import Event, EventType
 from population.generator import PopulationGenerator
 from map.map_loader import MapLoader
@@ -16,7 +17,8 @@ WAIT_TIME = 5
 
 
 class Simulation:
-    def __init__(self, maps_path, population_path, population_size, school_path, bus_distributions, start_time):
+    def __init__(self, maps_path, population_path, population_size, school_path, bus_distributions, start_time,
+                 analyzed_municipalities):
         """
         Initializes a Simulation object.
         Args:
@@ -26,6 +28,7 @@ class Simulation:
             school_path: path to where the school quantity and universities entries are stored.
             bus_distributions: amount of buses per route
             start_time: time at which the simulation starts.
+            analyzed_municipalities: municipalities to analyze.
 
         """
 
@@ -37,6 +40,7 @@ class Simulation:
 
         self.routes_graph = None
         self.complete_graph = None
+        self.analyzed_municipalities = analyzed_municipalities
         self.initialize_maps(maps_path)
 
         self.population = None
@@ -54,7 +58,8 @@ class Simulation:
     def initialize_maps(self, maps_path):
 
         loader = MapLoader(f"{maps_path}/havana.osm",
-                           f"{maps_path}/municipalities.poly")
+                           f"{maps_path}/municipalities.poly",
+                           self.analyzed_municipalities)
         self.complete_graph, self.routes_graph = loader.load_maps(maps_path, f"{maps_path}/GAZelles.json")
 
     def initialize_population(self, population_path, population_size):
@@ -79,6 +84,9 @@ class Simulation:
 
         for key, value in data.items():
 
+            if key not in self.analyzed_municipalities:
+                continue
+
             schools_in_municipality = {school for school in school_blocks if school.city == key}
 
             for stype, quantity in value.items():
@@ -96,13 +104,19 @@ class Simulation:
             data = json.load(file)
 
         for key, value in data.items():
-            self.schools[key] = [self.complete_graph.nodes[key] for key in value]
+            self.schools[key] = [self.complete_graph.nodes[key] for key in value if key in self.complete_graph.nodes]
 
         if Path(schools_path).exists():
             dill.dump(self.schools, open(f"{schools_path}/schools.pkl", 'wb'))
 
     def initialize_passengers(self):
         for profile in self.population:
+
+            if (profile["municipality"] not in self.analyzed_municipalities
+                    or ("workplace_location" in profile
+                        and profile["workplace_location"] not in self.analyzed_municipalities)):
+                continue
+
             home_block = self.complete_graph.nodes[
                 random.choice(self.complete_graph.nodes_by_municipality[profile["municipality"]])]
 
@@ -123,6 +137,10 @@ class Simulation:
                                               event_type=EventType.DEPARTURE,
                                               agent=passenger))
 
+            environment = PassengerEnvironment(time=time, map=self.complete_graph, current_position=0,
+                                               bus_at_stop="", current_bus_route="")
+            self.environments[f"passenger:{passenger.id}"] = environment
+
     def get_workplace_and_other_block(self, profile):
 
         if profile["employment_status"] == "occupied":
@@ -133,7 +151,8 @@ class Simulation:
             if profile["student_type"] == "bachelor":
                 if profile["bachelor_type"] == "medicine":
                     workplace = [
-                        random.choice(self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]
+                        self.complete_graph.nodes[random.choice(
+                            self.complete_graph.nodes_by_municipality[profile["workplace_location"]])]]
                 else:
                     workplace = self.schools.get(profile["bachelor_type"], None)
             else:
@@ -148,6 +167,12 @@ class Simulation:
 
     def initialize_drivers(self, bus_distributions, start_time):
 
+        gas_stations_blocks = [
+            block
+            for (_, _, place_type), (block, _) in self.complete_graph.places_of_interest.items()
+            if place_type == "school"
+        ]
+
         for route, quantity in bus_distributions.items():
 
             for i in range(quantity):
@@ -156,6 +181,19 @@ class Simulation:
                 heapq.heappush(self.events, Event(time=start_time + i * TIME_BETWEEN_DEPARTURES,
                                                   event_type=EventType.DEPARTURE,
                                                   agent=driver))
+
+                double = "P" in route.name
+
+                environment = DriverEnvironment(time=start_time + i * TIME_BETWEEN_DEPARTURES,
+                                                current_bus=Bus(300, 300, 0.4, 160, 0) if double else Bus(150, 150, 0.3,
+                                                                                                          80, 0),
+                                                current_position=0, last_element_index=-1, map=self.routes_graph,
+                                                gas_stations=gas_stations_blocks,
+                                                onboarding=False,
+                                                obstacle_ahead=False,
+                                                obstacles_blocks=[])
+
+                self.environments[f"driver:{driver.id}"] = environment
 
     def run(self):
 

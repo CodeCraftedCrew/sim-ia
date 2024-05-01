@@ -13,9 +13,10 @@ from map.relation_handler import RelationHandler
 
 class MapLoader:
 
-    def __init__(self, city_map_file, municipalities_file):
+    def __init__(self, city_map_file, municipalities_file, analyzed_municipalities):
         self.city_map_file = city_map_file
         self.municipalities_file = municipalities_file
+        self.analyzed_municipalities = analyzed_municipalities
         self.restrictions = ["route", "route_master", "restriction"]
         self.nodes = {}
         self.ways = {}
@@ -87,13 +88,17 @@ class MapLoader:
 
             for node_index, node_id in enumerate(way.nodes):
 
+                node = self.nodes[node_id]
+
+                if node.city not in self.analyzed_municipalities:
+                    continue
+
                 if last is None:
-                    last = self.nodes[node_id]
+                    last = node
                     last_index = node_index
                     previous = last
                     continue
 
-                node = self.nodes[node_id]
                 length += previous.length_to(node)
 
                 connected_roads = [node_way for node_way in node.part_of if node_way.is_road]
@@ -185,6 +190,9 @@ class MapLoader:
 
         for node in nodes:
 
+            if node.city not in self.analyzed_municipalities:
+                continue
+
             node_restrictions = restrictions.get(node.id, {})
 
             if last is None:
@@ -249,6 +257,9 @@ class MapLoader:
             via_way = self.ways[via_id]
             last_via_node = self.nodes[via_way.nodes[-1]]
 
+            if last_via_node.city not in self.analyzed_municipalities:
+                continue
+
             connected_roads_keys = [key for key in graph.edges.keys() if
                                     key.startswith(f"{via_id}:") and key.endswith(f":{last_via_node.id}")]
 
@@ -266,6 +277,9 @@ class MapLoader:
                 from_way = self.ways[from_id]
 
                 idx = f"{from_id}:_:{from_way.nodes[-1]}"
+
+                if idx not in graph.map:
+                    continue
 
                 key = f"{from_id}:{next(iter(graph.map[idx]))}:{from_way.nodes[-1]}"
 
@@ -323,9 +337,10 @@ class MapLoader:
     def build_bus_routes(self, graph, route_masters):
 
         bus_routes = {}
-        trips = []
 
         for route_master in route_masters:
+
+            trips = []
 
             ref = route_master.tags["ref"].value
             if ref in ["180"]:
@@ -335,11 +350,29 @@ class MapLoader:
                 if member.type == "r":
                     relation = self.relations[member.id]
 
-                    ordered_items = [blocks for _, blocks
-                                     in sorted(self.bus_routes[relation.id].items(), key=lambda x: x[0])]
-                    trips.append(self.order_route(graph, ref, member.id, ordered_items))
+                    if relation.id not in self.bus_routes:
+                        continue
 
-            bus_routes[ref] = Route(ref, trips[0], trips[1] if len(trips) > 1 else reversed(trips[0]))
+                    sorted_blocks = sorted(self.bus_routes[relation.id].items(), key=lambda x: x[0])
+                    last_index = -1
+                    blocks = [[]]
+                    for index, block in sorted_blocks:
+                        if last_index == -1:
+                            last_index = index
+                            blocks[len(blocks) - 1].append(block)
+                        elif last_index != index - 1:
+                            blocks.append([block])
+                            last_index = index
+                        else:
+                            last_index = index
+                            blocks[len(blocks) - 1].append(block)
+
+                    trips.append(self.order_route(graph, ref, member.id, max(blocks, key=len)))
+
+            trips = [trip for trip in trips if len(trip) > 0]
+
+            if trips:
+                bus_routes[ref] = Route(ref, trips[0], trips[1] if len(trips) > 1 else reversed(trips[0]))
 
         return bus_routes
 
@@ -375,7 +408,8 @@ class MapLoader:
         ordered = MapLoader.get_first_order(graph, ref, idx, first_way, second_way)
 
         if not ordered:
-            raise Exception("Route no completely connected")
+            return []
+            #raise Exception("Route no completely connected")
 
         route += ordered
 
@@ -392,7 +426,8 @@ class MapLoader:
                 continue
 
             if not ordered_blocks:
-                raise Exception("Route no completely connected")
+                return route
+                #raise Exception("Route no completely connected")
 
             route += ordered_blocks
 

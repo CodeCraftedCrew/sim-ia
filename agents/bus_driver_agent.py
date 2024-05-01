@@ -66,7 +66,7 @@ class BusDriverAgent(Agent):
 
         elif event.event_type == EventType.CONTINUE:
             if (self.status == DriverStatus.DRIVING_FOR_FUEL
-                    and environment_info.current_position in environment_info.gas_stations):
+                    and environment_info.current_position.id in environment_info.gas_stations):
                 return DriverStatus.REFUEL
             if self.status == DriverStatus.DRIVING or environment_info.obstacle_ahead:
                 return DriverStatus.DETOUR
@@ -143,7 +143,7 @@ class BusDriverAgent(Agent):
         Performs the 'refuel' action for the given agent.
         """
         detour = path_search(environment_info.map, self.current_route[environment_info.current_position].id,
-                             list(map(lambda x: x.id, environment_info.gas_stations)), [], self.ability,
+                             environment_info.gas_stations, [], self.ability,
                              False)
 
         self.current_route = detour
