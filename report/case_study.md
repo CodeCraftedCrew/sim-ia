@@ -1,20 +1,20 @@
-# Sección 2
+## Sección 2
 
-## Caso de estudio
+### Caso de estudio
 
 Nuestro caso de estudio es la ciudad de la Habana en Cuba. Esta ciudad posee una población de alrededor de  2 137 847 habitantes y una densidad poblacional de aproximadamente 2924.2 habitantes por $km^2$.
 
-### División por zonas
+#### División por zonas
 
 Se utilizará la división de zonas por municipios como método de análisis, fundamentándose en la necesidad de emplear áreas administrativas oficiales. Esta aproximación facilitará la asociación de cada zona con datos estadísticos disponibles, tales como población, empleo, entre otros.
 
-### Red básica
+#### Red básica
 
 Se empleará un grafo dirigido en el que cada nodo representa una cuadra, definida como un segmento de calle entre dos intersecciones. Durante la construcción del grafo, se determina según las direcciones de las calles y las restricciones de giro las aristas del grafo. Para cualquier par de nodos (cuadras) $x$ y $y$, existe una arista desde $x$ hasta $y$ si hay una intersección que los conecta y es posible avanzar desde $x$ hasta $y$ , ya sea doblando a la derecha, a la izquierda, siguiendo recto o realizando un giro en U.
 
 Cada nodo también contiene información sobre la longitud de la cuadra y elementos que pueden afectar la velocidad de desplazamiento, como cruces peatonales, semáforos o señales de Pare  y Ceda el paso. Además, proporciona información sobre las rutas que tienen puntos de parada en esta cuadra y posibles puntos de interés.
 
-### Dimensiones temporales
+#### Dimensiones temporales
 
 El análisis se desarrollará a lo largo de un período temporal de al menos un año, dividido en trimestres para facilitar la comprensión de las variaciones estacionales en la demanda de transporte. Se presupondrá que a largo plazo, la población de La Habana y sus patrones de movilidad experimentarán cambios graduales debido al crecimiento demográfico, desarrollos urbanos y modificaciones en la economía y el estilo de vida de la población.
 
@@ -24,7 +24,7 @@ Los promedios de pasajeros transportados en cada trimestre del año son los sigu
 
 En las urbes de gran tamaño, las horas pico suelen concentrarse durante las horas de la mañana y la tarde, coincidiendo con los horarios de entrada y salida del trabajo y la escuela. Dado que no se dispone de información específica sobre las horas pico en la capital del país, se hará una suposición general considerando las horas pico como aquellas comprendidas entre las 7:00 a.m. y las 10:00 a.m., y entre las 5:00 p.m. y las 8:00 p.m.
 
-### Estimación de la demanda
+#### Estimación de la demanda
 
 Para estimar la demanda de transporte público en La Habana, tomaremos en consideración los desplazamientos relacionados con el trabajo y la educación. Aunque no contamos con datos específicos sobre la población económicamente activa (PEA) por municipios, haremos una aproximación basada en los siguientes datos:
 
@@ -144,9 +144,9 @@ La principal desventaja de este enfoque es la falta de correlación con la reali
 
 Además, este método tiene un alto grado de incertidumbre, ya que no puede anticipar eventos inesperados o cambios en el comportamiento de los usuarios. Sin embargo, ante la falta de información concreta y recursos limitados, podría ser un punto de partida para obtener una estimación básica de la demanda.
 
-## Definición de la simulación
+### Definición de la simulación
 
-### Definición del Medio
+#### Definición del Medio
 
 - Entorno Físico:
   - Las calles y avenidas de La Habana, incluyendo intersecciones, cruces, pasos peatonales, señales de pare y ceda el paso, semáforos y lugares de interés.
@@ -159,20 +159,20 @@ Además, este método tiene un alto grado de incertidumbre, ya que no puede anti
   - Conductores de guaguas y gazelle con diferentes niveles de habilidad.
   - Pasajeros que esperan en paradas específicas o solicitan gazelle, dependiendo de sus planes y el estado del medio.
 
-#### Condiciones Iniciales
+##### Condiciones Iniciales
 
 - Distribución inicial de guaguas y gazelle en la ciudad.
 - Distribución de las rutas y puntos de parada.
 - Estado inicial de las guaguas y gazelle (nivel de petróleo, estado mecánico).
 - Ubicación inicial de obstáculos (accidentes, reparaciones).
 
-#### Interacciones y reglas
+##### Interacciones y reglas
 
 - Accidentes y Tráfico:
   - Los accidentes ocurren con una probabilidad variable, según la hora del día y la densidad del tráfico.
   - Los obstáculos enlentecedores y bloqueadores afectan el tráfico y la elección de rutas.
 
-#### Recursos y Restricciones
+##### Recursos y Restricciones
 
 - Recursos:
   - Cantidad de guaguas y gazelle disponibles.
@@ -182,7 +182,7 @@ Además, este método tiene un alto grado de incertidumbre, ya que no puede anti
   - Limitaciones en el tiempo para completar rutas.
   - Regulaciones de tráfico.
 
-#### Escalas y Unidades
+##### Escalas y Unidades
 
 - Distancia: Kilómetros.
 - Tiempo: Minutos, horas. (ToDo: falta por definir bien la escala)

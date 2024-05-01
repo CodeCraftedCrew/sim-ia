@@ -2,7 +2,6 @@ from enum import Enum, auto
 
 
 class EventType(Enum):
-
     GET_OFF_VEHICLE = auto()
     BOARD_VEHICLE = auto()
     BUS_STOP = auto()
@@ -16,6 +15,7 @@ class EventType(Enum):
     ROUTE_ENDED = auto()
     ROUTE_ENDED_ABRUPTLY = auto()
 
+
 class Event:
     def __init__(self, time, event_type, agent):
         self.time = time
@@ -23,4 +23,4 @@ class Event:
         self.agent = agent
 
     def __lt__(self, other):
-        return self.time < other.time or self.event_type.value <= other.event_type.value
+        return self.time < other.time or (self.time == other.time and self.event_type.value <= other.event_type.value)

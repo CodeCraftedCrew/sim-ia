@@ -137,7 +137,7 @@ class Simulation:
                                               event_type=EventType.DEPARTURE,
                                               agent=passenger))
 
-            environment = PassengerEnvironment(time=time, map=self.complete_graph, current_position=0,
+            environment = PassengerEnvironment(time=time, map=self.routes_graph, current_position=0,
                                                bus_at_stop="", current_bus_route="")
             self.environments[f"passenger:{passenger.id}"] = environment
 
@@ -205,10 +205,10 @@ class Simulation:
             env = self.get_environment_info(agent)
             env.time = current_event.time
 
-            if current_event.type == EventType.FUEL_SPENT:
+            if current_event.event_type == EventType.FUEL_SPENT:
                 env.current_bus.fuel -= env.current_bus.consumption_rate * agent.current_route[env.current_position]
 
-            if current_event.type == EventType.BUS_STOP and not env.onboarding:
+            if current_event.event_type == EventType.BUS_STOP and not env.onboarding:
 
                 passengers_on_vehicle = self.passengers_on_vehicle.get(agent.id, [])
 
@@ -225,8 +225,6 @@ class Simulation:
 
                 env.onboarding = True
                 current_block_id = agent.current_route[env.current_position].id
-                space = env.current_bus.space()
-                waiting_index = 0
                 waiting_passengers = self.passengers_waiting.get(current_block_id, [])
 
                 for passenger in waiting_passengers:
