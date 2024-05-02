@@ -139,10 +139,11 @@ class MapLoader:
 
                     graph.add_node(block)
                     if node.city:
-                        graph.nodes_by_municipality[node.city] = graph.nodes_by_municipality.get(node.city, []) + [block.id]
+                        graph.nodes_by_municipality[node.city] = graph.nodes_by_municipality.get(node.city, []) + [
+                            block.id]
 
                     self.check_places_of_interest(last.location.latitude, last.location.longitude,
-                                            block.id, places_of_interest)
+                                                  block.id, places_of_interest)
 
                     graph.map[f"{way.id}:_:{node_id}"] = graph.map.get(f"{way.id}:_:{node_id}", []) + [last.id]
                     graph.map[f"{way.id}:{last.id}:_"] = graph.map.get(f"{way.id}:{last.id}:_", []) + [node_id]
@@ -153,7 +154,8 @@ class MapLoader:
                                       (node_id, last.id), elements, way.is_roundabout)
 
                         if last.city:
-                            graph.nodes_by_municipality[last.city] = graph.nodes_by_municipality.get(last.city, []) + [block.id]
+                            graph.nodes_by_municipality[last.city] = graph.nodes_by_municipality.get(last.city, []) + [
+                                block.id]
 
                         sum_value += length
                         graph.add_node(block)
@@ -353,8 +355,10 @@ class MapLoader:
                     if relation.id not in self.bus_routes:
                         continue
 
+                    if ref == "P5":
+                        print("here")
+
                     sorted_blocks = sorted(self.bus_routes[relation.id].items(), key=lambda x: x[0])
-                    sorted_blocks = MapLoader.flatten(sorted_blocks)
 
                     last_index = -1
                     blocks = [[]]
@@ -371,7 +375,7 @@ class MapLoader:
 
                     trips.append(self.order_route(graph, ref, member.id, max(blocks, key=len)))
 
-            trips = [trip for trip in trips if len(trip) > 0]
+            trips = [MapLoader.flatten(trip) for trip in trips if len(trip) > 0]
 
             if trips:
                 bus_routes[ref] = Route(ref, trips[0], trips[1] if len(trips) > 1 else reversed(trips[0]))
@@ -384,7 +388,7 @@ class MapLoader:
         result = []
         for block in blocks:
             if isinstance(block, list):
-                result.extend(block)
+                result.extend(MapLoader.flatten(block))
             else:
                 result.append(block)
 
