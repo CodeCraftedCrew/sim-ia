@@ -34,7 +34,7 @@ def minimum_fuel_level(bus_model, max_fuel):
         return None
 
 
-def walk_speed(passenger: PassengerAgent):
+def walk_speed(employment_status: str, student_type: str, age: int):
     """
     Calculates the walking speed of a person based on their profile information.
 
@@ -44,32 +44,27 @@ def walk_speed(passenger: PassengerAgent):
     Returns:
         int or None: The walking speed in kilometers per hour as an integer, or None if the response is not a valid integer.
     """
-    age = passenger.profile['age']
 
-    if (passenger.profile['employment_status'] == "occupied"):
+    if (employment_status == "occupied"):
         response = model.generate_content(
             f'A cuántos kilómetros por hora camina una persona de {age} años que trabaja? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-    elif (passenger.profile['employment_status'] == "student"):
-        if (passenger.profile['student_type'] == "high_school"):
+    elif (employment_status == "student"):
+        if (student_type == "high_school"):
             response = model.generate_content(
                 f'A cuántos kilómetros por hora camina una persona de {age} años que estudia en la secundaria? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-        elif (passenger.profile['student_type'] == "technician"):
+        elif (student_type == "technician"):
             response = model.generate_content(
                 f'A cuántos kilómetros por hora camina una persona de {age} años que estudia en el tecnológico? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-        elif (passenger.profile['student_type'] == "pedagogical"):
+        elif (student_type == "pedagogical"):
             response = model.generate_content(
                 f'A cuántos kilómetros por hora camina una persona de {age} años que estudia pedagogía? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-        elif (passenger.profile['student_type'] == "special"):
+        elif (student_type == "special"):
             response = model.generate_content(
                 f'A cuántos kilómetros por hora camina una persona de {age} años que estudia en la educación especial? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-        elif (passenger.profile['student_type'] == "bachelor"):
-            if (passenger.profile['bachelor_type'] == "medicine"):
-                response = model.generate_content(
-                    f'A cuántos kilómetros por hora camina una persona de {age} años que estudia medicina? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-            else:
-                response = model.generate_content(
-                    f'A cuántos kilómetros por hora camina una persona de {age} años que estudia en la universidad? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
-    elif (passenger.profile['employment_status'] == "unoccupied"):
+        elif (student_type == "bachelor"):
+            response = model.generate_content(
+                f'A cuántos kilómetros por hora camina una persona de {age} años que estudia en la universidad? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
+    elif (employment_status == "unoccupied"):
         response = model.generate_content(
             f'A cuántos kilómetros por hora camina una persona de {age} años que no trabaja? Dame tu respuesta con solo una palabra, sin ningún tipo de explicación, solo un número')
     else:

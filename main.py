@@ -23,7 +23,7 @@ def chat(simulation: Simulation, actions: list):
 
         if response == "Iniciar simulación":
             print("Iniciando simulación...")
-            simulation.run()
+            threading.Thread(target=simulation.run).start()
         elif response == "Detener simulación":
             print("Deteniendo simulación...")
             simulation.stop()
