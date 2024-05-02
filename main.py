@@ -22,13 +22,26 @@ def chat(simulation: Simulation, actions: list):
         response = llm.chat(entry, actions)
 
         if response == "Iniciar simulación":
-            print("Iniciando simulación...")
+            print("La simulación ha empezado. Por favor, espera unos minutos.")
             threading.Thread(target=simulation.run).start()
         elif response == "Detener simulación":
-            print("Deteniendo simulación...")
+            print("La simulación se detuvo.")
             simulation.stop()
+        elif response == "Planes imposibles":
+            llm.answer_chat(entry, None)
+        elif response == "Caminando":
+            llm.answer_chat(entry, None)
+        elif response == "Máximo tiempo de espera":
+            llm.answer_chat(entry, None)
+        elif response == "Mínimo tiempo de espera":
+            llm.answer_chat(entry, None)
+        elif response == "Tiempo promedio de espera":
+            llm.answer_chat(entry, None)
+        elif response == "Pasajeros en una ruta":
+            llm.answer_chat(entry, None)
         else:
             print("Acción no reconocida.")
+            
 
 
 def main():
@@ -42,7 +55,7 @@ def main():
     simulation = Simulation(f"{src_path}/map", f"{src_path}/population", 1827,
                             f"{src_path}/data", distributions, 600, ["playa"])
 
-    t = threading.Thread(target=chat, args=(simulation, ["Iniciar simulación", "Detener simulación"]))
+    t = threading.Thread(target=chat, args=(simulation, ["Iniciar simulación", "Detener simulación", "Planes imposibles", "Caminando", "Máximo tiempo de espera", "Mínimo tiempo de espera", "Tiempo promedio de espera", "Pasajeros en una ruta"]))
     t.start()
 
 

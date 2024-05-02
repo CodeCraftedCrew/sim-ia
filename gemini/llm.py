@@ -1,4 +1,3 @@
-from agents.passenger_agent import PassengerAgent
 from dotenv import load_dotenv
 import google.generativeai as genai
 import os
@@ -80,5 +79,11 @@ def walk_speed(employment_status: str, student_type: str, age: int):
 def chat(entry, actions: list):
     response = model.generate_content(
         f'Dada la siguiente orden: {entry}, clasifica la acción como una de las siguientes: {actions}. Responde solo con la elección, no expliques nada.')
+
+    return response.text
+
+def answer_chat(entry, data):
+    response = model.generate_content(
+        f'Dada la siguiente información: {data}, responde la pregunta siguiente: {entry}.')
 
     return response.text
