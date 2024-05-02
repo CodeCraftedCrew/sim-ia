@@ -20,7 +20,7 @@ def heuristic(src_node, goal_nodes, drivers_ability, walk):
 
 def cost(graph, src_id, walk):
     block = graph.nodes[src_id]
-    estimated_time = block.length / (block.max_speed if not walk else MAX_WALK_SPEED)
+    estimated_time = block.length / (int(block.max_speed) if not walk else MAX_WALK_SPEED)
     penalty = len([element for element in block.elements if element.is_traffic_sign]) * OBSTACLE_PENALTY_FACTOR
 
     return estimated_time + penalty

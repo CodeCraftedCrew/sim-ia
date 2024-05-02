@@ -119,7 +119,7 @@ class BusDriverAgent(Agent):
 
         events = []
 
-        bus_speed = self.current_route[environment_info.current_position].max_speed
+        bus_speed = int(self.current_route[environment_info.current_position].max_speed)
         time = environment_info.time
 
         last_position = 0

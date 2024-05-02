@@ -346,8 +346,6 @@ class MapLoader:
             if ref in ["180"]:
                 continue
 
-            print(ref)
-
             for member in route_master.members:
                 if member.type == "r":
                     relation = self.relations[member.id]
