@@ -37,7 +37,7 @@ def get_max_iterations(start, goals, avg_node_length):
 def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
                 drivers_ability: float = 1, walk: bool = False, only_walk: bool = False):
     if len(goal_ids) == 0:
-        return None
+        return -1, None
 
     open_set = []
     goal_nodes = [graph.nodes[goal_id] for goal_id in goal_ids]

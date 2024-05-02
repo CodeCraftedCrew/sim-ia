@@ -354,6 +354,8 @@ class MapLoader:
                         continue
 
                     sorted_blocks = sorted(self.bus_routes[relation.id].items(), key=lambda x: x[0])
+                    sorted_blocks = MapLoader.flatten(sorted_blocks)
+
                     last_index = -1
                     blocks = [[]]
                     for index, block in sorted_blocks:
@@ -375,6 +377,18 @@ class MapLoader:
                 bus_routes[ref] = Route(ref, trips[0], trips[1] if len(trips) > 1 else reversed(trips[0]))
 
         return bus_routes
+
+    @staticmethod
+    def flatten(blocks):
+
+        result = []
+        for block in blocks:
+            if isinstance(block, list):
+                result.extend(block)
+            else:
+                result.append(block)
+
+        return result
 
     def build_gazelle_routes(self, graph):
         gazelle_routes = {}
@@ -430,6 +444,9 @@ class MapLoader:
                 #raise Exception("Route no completely connected")
 
             route += ordered_blocks
+
+        if isinstance(route[0], list):
+            print("here")
 
         return route
 

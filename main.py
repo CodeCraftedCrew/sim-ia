@@ -31,7 +31,6 @@ def chat(simulation: Simulation, actions: list):
             print("Acción no reconocida.")
 
 
-
 def main():
     src_path = Path(__file__).parent
 

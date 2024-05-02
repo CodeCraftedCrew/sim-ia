@@ -1,12 +1,14 @@
 import glob
 import os
+from pathlib import Path
+
+import dill
 import pandas as pd
 
 from events.event import EventType
 
 
 def analyze_logs(logs_path, specific=False):
-
     if not specific:
         log_files = glob.glob(os.path.join(logs_path, "*.log"))
 
@@ -69,4 +71,21 @@ def analyze_logs(logs_path, specific=False):
                     waiting_times.append((event["time"] - last_time, event["agent_id"]))
                     last_event_per_agent.pop(event["agent_id"])
 
+    return walking, waiting_times, impossible_plans, passengers_per_driver
 
+
+def get_route_by_driver(passengers_per_driver, data_path):
+    if Path(f"{data_path}/drivers.pkl").exists():
+        drivers = dill.load(open(f"{data_path}/drivers.pkl", "rb"))
+        drivers = {driver.id: driver for driver in drivers}
+
+        passengers_per_route_driver = {(drivers[key].route.name, key): passengers for key, passengers
+                                       in passengers_per_driver.items()}
+
+        passengers_per_route = {}
+        for key, passengers in passengers_per_driver.items():
+            passengers_per_route[key[0]] = passengers_per_route.get(key[0], []) + passengers
+
+        return passengers_per_route_driver, passengers_per_route
+
+    return {}, {}
