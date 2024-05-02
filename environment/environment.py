@@ -3,20 +3,19 @@ from dataclasses import dataclass
 from map.graph import Graph
 from map.map_elements import Block
 
-MIN_FUEL = 20
-
 
 @dataclass
 class Bus:
     fuel: float
     max_fuel: float
+    min_fuel: float
     consumption_rate: float
     capacity: int
     count: int
     model: str
 
     def is_fuel_low(self):
-        return self.fuel <= MIN_FUEL
+        return self.fuel <= self.min_fuel
 
     def space(self):
         return self.capacity - self.count

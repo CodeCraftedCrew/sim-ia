@@ -9,9 +9,10 @@ from collections.abc import Iterable
 import dill
 
 from agents.bus_driver_agent import BusDriverAgent
-from agents.passenger_agent import PassengerAgent, PassengerStatus
+from agents.passenger_agent import PassengerAgent
 from environment.environment import DriverEnvironment, Bus, PassengerEnvironment
 from events.event import Event, EventType
+from gemini.llm import minimum_fuel_level
 from population.generator import PopulationGenerator
 from map.map_loader import MapLoader
 
@@ -56,6 +57,7 @@ class Simulation:
         self.initialize_passengers(data_path)
 
         self.drivers = []
+        self.min_fuel_by_model = {}
         self.initialize_drivers(bus_distributions, start_time, data_path)
 
         now = datetime.now()
@@ -235,11 +237,17 @@ class Simulation:
                                                   event_type=EventType.DEPARTURE,
                                                   agent=driver))
 
-                double = "P" in route.name
+                model, max_fuel, consumption_rate, capacity = ("MAZ-105", 300, 0.4, 160) if "P" in route.name else ("MAZ-103T", 160, 0.3, 80)
+
+                if model in self.min_fuel_by_model:
+                    min_fuel = self.min_fuel_by_model[model]
+                else:
+                    min_fuel = minimum_fuel_level(model, max_fuel)
+                    self.min_fuel_by_model[model] = min_fuel
 
                 environment = DriverEnvironment(time=start_time + i * TIME_BETWEEN_DEPARTURES,
-                                                current_bus=Bus(300, 300, 0.4, 160, 0) if double else Bus(150, 150, 0.3,
-                                                                                                          80, 0),
+                                                current_bus=Bus(max_fuel, max_fuel, min_fuel, consumption_rate,
+                                                                capacity, 0, model),
                                                 current_position=0, last_element_index=-1, map=self.routes_graph,
                                                 gas_stations=gas_stations_blocks,
                                                 onboarding=False,
@@ -375,6 +383,6 @@ class Simulation:
                 PassengerEnvironment: A dictionary containing the environment information.
         """
         return self.environments[f"passenger:{agent.id}"]
-    
+
     def stop(self):
         pass
