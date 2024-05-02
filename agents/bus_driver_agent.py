@@ -98,6 +98,8 @@ class BusDriverAgent(Agent):
         if status == DriverStatus.IDLE:
             return self.restart(environment_info)
 
+        return []
+
     def drive(self, environment_info: DriverEnvironment):
         """
         Performs the 'drive' action for the given agent.

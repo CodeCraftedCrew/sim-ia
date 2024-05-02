@@ -2,6 +2,7 @@ from enum import Enum, auto
 
 
 class EventType(Enum):
+
     GET_OFF_VEHICLE = auto()
     BOARD_VEHICLE = auto()
     BUS_STOP = auto()
@@ -12,8 +13,10 @@ class EventType(Enum):
     CHANGE_POSITION = auto()
     FUEL_SPENT = auto()
     AT_STOP = auto()
+    AT_GOAL = auto()
     ROUTE_ENDED = auto()
     ROUTE_ENDED_ABRUPTLY = auto()
+    IMPOSSIBLE_PLAN = auto()
 
 
 class Event:

@@ -112,7 +112,7 @@ class MapLoader:
 
                 if len(connected_roads) > 1 or node_index == len(way.nodes) - 1:
 
-                    max_speed = way.tags.get("maxspeed", Tag("maxspeed", "50 km/h")).value.split()[0]
+                    max_speed = int(way.tags.get("maxspeed", Tag("maxspeed", "50 km/h")).value.split()[0])
 
                     block = Block(way.id, max_speed, last.location, node.city,
                                   way.tags.get("name", Tag("name", "undefined")).value, length,
@@ -345,6 +345,8 @@ class MapLoader:
             ref = route_master.tags["ref"].value
             if ref in ["180"]:
                 continue
+
+            print(ref)
 
             for member in route_master.members:
                 if member.type == "r":

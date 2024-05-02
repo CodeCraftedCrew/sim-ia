@@ -45,3 +45,4 @@ class PassengerEnvironment:
     current_position: int
     bus_at_stop: str
     current_bus_route: str
+    current_driver: str

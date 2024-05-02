@@ -20,7 +20,7 @@ def heuristic(src_node, goal_nodes, drivers_ability, walk):
 
 def cost(graph, src_id, walk):
     block = graph.nodes[src_id]
-    estimated_time = block.length / (int(block.max_speed) if not walk else MAX_WALK_SPEED)
+    estimated_time = block.length / (block.max_speed if not walk else MAX_WALK_SPEED)
     penalty = len([element for element in block.elements if element.is_traffic_sign]) * OBSTACLE_PENALTY_FACTOR
 
     return estimated_time + penalty
@@ -35,7 +35,7 @@ def get_max_iterations(start, goals, avg_node_length):
 
 
 def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
-                drivers_ability: float = 1, walk: bool = False):
+                drivers_ability: float = 1, walk: bool = False, only_walk: bool = False):
     if len(goal_ids) == 0:
         return None
 
@@ -44,7 +44,9 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
     start_node = graph.nodes[start_id]
 
     heapq.heappush(open_set, Node(start_id, g_score=0,
-                                  f_score=heuristic(graph.nodes[start_id], goal_nodes, drivers_ability, walk), ))
+                                  f_score=heuristic(graph.nodes[start_id], goal_nodes, drivers_ability,
+                                                    walk or only_walk),
+                                  ))
 
     g_scores = {start_id: 0}
 
@@ -83,7 +85,7 @@ def path_search(graph: Graph, start_id: str, goal_ids: list[str], blocked_nodes,
                     came_from[neighbor_id] = current_node.id
                     g_scores[neighbor_id] = tentative_g_score
                     f_score = tentative_g_score + heuristic(graph.nodes[neighbor_id], goal_nodes, drivers_ability,
-                                                            walk_value)
+                                                            walk_value or only_walk)
                     heapq.heappush(open_set, Node(neighbor_id, g_score=tentative_g_score, f_score=f_score))
 
     return -1, None
