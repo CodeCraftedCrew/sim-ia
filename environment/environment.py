@@ -13,6 +13,7 @@ class Bus:
     consumption_rate: float
     capacity: int
     count: int
+    model: str
 
     def is_fuel_low(self):
         return self.fuel <= MIN_FUEL
