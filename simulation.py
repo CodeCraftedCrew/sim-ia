@@ -269,3 +269,6 @@ class Simulation:
                 PassengerEnvironment: A dictionary containing the environment information.
         """
         return self.environments[f"passenger:{agent.id}"]
+    
+    def stop(self):
+        pass
