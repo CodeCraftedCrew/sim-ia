@@ -33,12 +33,14 @@ def minimum_fuel_level(bus_model, max_fuel):
         return None
 
 
-def walk_speed(employment_status: str, student_type: str, age: int):
+def walk_speed(employment_status: str, student_type: str, age: str):
     """
     Calculates the walking speed of a person based on their profile information.
 
     Args:
-        passenger (PassengerAgent): The passenger object containing the profile information.
+        employment_status (str): the employment status of the person.
+        student_type (str): the student type of the person.
+        age (str): the age of the person.
 
     Returns:
         int or None: The walking speed in kilometers per hour as an integer, or None if the response is not a valid integer.

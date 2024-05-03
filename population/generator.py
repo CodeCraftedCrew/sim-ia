@@ -4,6 +4,7 @@ from pathlib import Path
 
 import dill
 
+from gemini.llm import walk_speed
 from population.fuzzy_system import FuzzySystemMoney, FuzzySystemWaitingTime
 
 
@@ -144,6 +145,8 @@ class PopulationGenerator:
         person['max_waiting_time'] = self.fuzzy_system_waiting_time.infer_max_waiting_time(person['age'],
                                                                                            person['money'],
                                                                                            person['employment_status'])
+
+        person["walk_speed"] = walk_speed(person['employment_status'], person.get("student_type", ""), person["age"])
 
         return person
 

@@ -104,15 +104,10 @@ class BusDriverAgent(Agent):
         """
         Performs the 'drive' action for the given agent.
         """
-
-        try:
-
-            elements = self.current_route[environment_info.current_position].elements[
-                       environment_info.last_element_index + 1:] \
-                if environment_info.last_element_index < len(
-                self.current_route[environment_info.current_position].elements) - 1 else []
-        except:
-            print("here")
+        elements = self.current_route[environment_info.current_position].elements[
+                   environment_info.last_element_index + 1:] \
+            if environment_info.last_element_index < len(
+            self.current_route[environment_info.current_position].elements) - 1 else []
 
         if len(elements) == 0:
             if environment_info.current_position == len(self.current_route) - 1:
@@ -152,7 +147,7 @@ class BusDriverAgent(Agent):
                              environment_info.gas_stations, [], self.ability,
                              False)
 
-        self.current_route = detour[1]
+        self.current_route = [environment_info.map.nodes[idx] for idx in detour[1]]
         return Event(environment_info.time, EventType.DEPARTURE, self)
 
     def refuel(self, environment_info):
@@ -162,7 +157,7 @@ class BusDriverAgent(Agent):
                              [self.current_route[len(self.current_route) - 1].id], [], self.ability,
                              False)
 
-        self.current_route = detour[1]
+        self.current_route = [environment_info.map.nodes[idx] for idx in detour[1]]
         return Event(environment_info.time, EventType.DEPARTURE, self)
 
     def take_detour(self, environment_info):
@@ -182,7 +177,8 @@ class BusDriverAgent(Agent):
                                  [self.current_route[last_index].id], environment_info.obstacles_blocks, self.ability,
                                  False)
 
-        self.current_route[environment_info.current_position + 1: last_index + 1] = detour[1]
+        self.current_route[environment_info.current_position + 1: last_index + 1] = [environment_info.map.nodes[idx] for idx
+                                                                                     in detour[1]]
         return Event(environment_info.time, EventType.CONTINUE, self)
 
     def obey_traffic_signal(self, time, signal_type):
@@ -216,5 +212,5 @@ class BusDriverAgent(Agent):
                              [self.current_route[0].id], [], self.ability,
                              False)
 
-        self.current_route = detour[1]
+        self.current_route = [environment_info.map.nodes[idx] for idx in detour[1]]
         return Event(environment_info.time, EventType.DEPARTURE, self)

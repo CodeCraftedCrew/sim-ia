@@ -73,7 +73,7 @@ class PassengerAgent(Agent):
         self.route = None
 
         self.can_walk = 0.5  # distance in km
-        self.speed = 5
+        self.speed = profile["walk_speed"]
         self.time_to_get_off = 0.3
         self.time_to_onboard = 0.3
 
